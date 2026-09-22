@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DevCanvas Settings">
+  <title>DevCanvas | Settings</title>
+
+  <link rel="stylesheet" href="./css/variables.css">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/layout.css">
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand-section">
+        <a href="./index.html" class="brand">
+          <div class="brand-mark">&lt;/&gt;</div>
+          <span>DevCanvas</span>
+        </a>
+
+        <nav class="navigation">
+          <a href="./index.html" class="nav-link">Dashboard</a>
+          <a href="./workspace.html" class="nav-link">Workspace</a>
+          <a href="./settings.html" class="nav-link active">Settings</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page-header">
+        <h1>Settings</h1>
+        <p>Configure your DevCanvas development environment.</p>
+      </div>
+
+      <section class="settings-layout">
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h2>Editor</h2>
+            <p>Customize how the editor behaves.</p>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3>Editor Theme</h3>
+              <p>Choose the appearance of the code editor.</p>
+            </div>
+
+            <select>
+              <option>Dark</option>
+              <option>Light</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3>Font Size</h3>
+              <p>Set the editor text size.</p>
+            </div>
+
+            <select>
+              <option>12px</option>
+              <option selected>14px</option>
+              <option>16px</option>
+              <option>18px</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3>Tab Size</h3>
+              <p>Number of spaces used for indentation.</p>
+            </div>
+
+            <select>
+              <option>2</option>
+              <option selected>4</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h2>Project Behavior</h2>
+            <p>Control saving and preview behavior.</p>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3>Autosave</h3>
+              <p>Automatically save project changes.</p>
+            </div>
+
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3>Live Preview</h3>
+              <p>Refresh preview automatically while typing.</p>
+            </div>
+
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3>Show Console</h3>
+              <p>Display runtime output below the preview.</p>
+            </div>
+
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

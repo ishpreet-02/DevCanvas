@@ -1,5 +1,4 @@
 export const state = {
-  currentRoute: "dashboard",
   currentProject: {
     id: null,
     name: "Untitled Project",
@@ -7,5 +6,6 @@ export const state = {
     css: "",
     javascript: ""
   },
+
   projects: []
 };

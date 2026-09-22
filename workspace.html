@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DevCanvas Workspace">
+  <title>DevCanvas | Workspace</title>
+
+  <link rel="stylesheet" href="./css/variables.css">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/layout.css">
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand-section">
+        <a href="./index.html" class="brand">
+          <div class="brand-mark">&lt;/&gt;</div>
+          <span>DevCanvas</span>
+        </a>
+
+        <nav class="navigation">
+          <a href="./index.html" class="nav-link">Dashboard</a>
+          <a href="./workspace.html" class="nav-link active">Workspace</a>
+          <a href="./settings.html" class="nav-link">Settings</a>
+        </nav>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="secondary-button">Save</button>
+        <button class="primary-button">Run</button>
+      </div>
+    </header>
+
+    <main class="workspace-main">
+      <div class="workspace-toolbar">
+        <div>
+          <h1>Untitled Project</h1>
+          <p>HTML · CSS · JavaScript</p>
+        </div>
+
+        <div class="workspace-status">
+          <span class="status-dot"></span>
+          <span>Not saved yet</span>
+        </div>
+      </div>
+
+      <section class="workspace-layout">
+        <div class="editor-panel">
+          <div class="panel-header">
+            <div class="editor-tabs">
+              <button class="editor-tab active">HTML</button>
+              <button class="editor-tab">CSS</button>
+              <button class="editor-tab">JavaScript</button>
+            </div>
+
+            <span class="panel-label">Editor</span>
+          </div>
+
+          <div class="editor-placeholder">
+            <span class="line-number">1</span>
+            <span class="code-line">&lt;h1&gt;Hello DevCanvas&lt;/h1&gt;</span>
+            <br>
+            <span class="line-number">2</span>
+            <span class="code-line">&lt;p&gt;Start building your project.&lt;/p&gt;</span>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="panel-header">
+            <span>Live Preview</span>
+
+            <div class="preview-actions">
+              <button class="small-button active">Desktop</button>
+              <button class="small-button">Tablet</button>
+              <button class="small-button">Mobile</button>
+            </div>
+          </div>
+
+          <div class="preview-placeholder">
+            <div class="preview-message">
+              <h2>Hello DevCanvas</h2>
+              <p>Your rendered website will appear here.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="console-panel">
+        <div class="panel-header">
+          <span>Console</span>
+          <button class="small-button">Clear</button>
+        </div>
+
+        <div class="console-placeholder">
+          <p>&gt; Console output will appear here.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

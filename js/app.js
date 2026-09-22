@@ -1,24 +1,27 @@
-import { renderRoute } from "./router.js";
-
 function initializeApp() {
-  console.log("DevCanvas initialized");
-
-  if (!window.location.hash) {
-    window.location.hash = "dashboard";
-  } else {
-    renderRoute();
-  }
-
-  window.addEventListener("hashchange", renderRoute);
-  setupNewProjectButton();
+  setupProjectButtons();
 }
 
-function setupNewProjectButton() {
-  const button = document.getElementById("new-project-button");
+function setupProjectButtons() {
+  const newProjectButton = document.getElementById("new-project-button");
+  const heroNewProjectButton = document.getElementById("hero-new-project-button");
+  const createProjectCard = document.getElementById("create-project-card");
 
-  button.addEventListener("click", () => {
-    window.location.hash = "workspace";
-  });
+  const openWorkspace = () => {
+    window.location.href = "./workspace.html";
+  };
+
+  if (newProjectButton) {
+    newProjectButton.addEventListener("click", openWorkspace);
+  }
+
+  if (heroNewProjectButton) {
+    heroNewProjectButton.addEventListener("click", openWorkspace);
+  }
+
+  if (createProjectCard) {
+    createProjectCard.addEventListener("click", openWorkspace);
+  }
 }
 
 initializeApp();
