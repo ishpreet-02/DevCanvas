@@ -1017,6 +1017,53 @@
   transform: translateX(19px);
 }
 
+.editor-container {
+  min-height: 520px;
+  background: #111827;
+}
+
+.code-editor {
+  display: none;
+  width: 100%;
+  min-height: 520px;
+  padding: 22px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: #111827;
+  color: #dbeafe;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 14px;
+  line-height: 1.8;
+  tab-size: 2;
+}
+
+.code-editor.active {
+  display: block;
+}
+
+.preview-frame {
+  width: 100%;
+  min-height: 520px;
+  border: 0;
+  background: #ffffff;
+}
+
+.console-placeholder p {
+  margin: 0 0 6px;
+}
+
+.console-log {
+  color: #d1d5db;
+}
+
+.console-error {
+  color: #f87171;
+}
+
+.console-warn {
+  color: #fbbf24;
+}
 /* =========================
    ANIMATIONS
 ========================= */
@@ -1042,6 +1089,7 @@
     transform: rotate(1.3deg) translateY(7px);
   }
 }
+
 
 /* =========================
    RESPONSIVE

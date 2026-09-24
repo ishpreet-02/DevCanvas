@@ -28,8 +28,8 @@
       </div>
 
       <div class="topbar-actions">
-        <button class="secondary-button">Save</button>
-        <button class="primary-button">Run</button>
+        <button class="secondary-button" id="save-button">Save</button>
+        <button class="primary-button" id="run-button">Run</button>
       </div>
     </header>
 
@@ -42,7 +42,7 @@
 
         <div class="workspace-status">
           <span class="status-dot"></span>
-          <span>Not saved yet</span>
+          <span id="save-status">Not saved yet</span>
         </div>
       </div>
 
@@ -50,20 +50,29 @@
         <div class="editor-panel">
           <div class="panel-header">
             <div class="editor-tabs">
-              <button class="editor-tab active">HTML</button>
-              <button class="editor-tab">CSS</button>
-              <button class="editor-tab">JavaScript</button>
+              <button class="editor-tab active" data-editor="html">HTML</button>
+              <button class="editor-tab" data-editor="css">CSS</button>
+              <button class="editor-tab" data-editor="javascript">JavaScript</button>
             </div>
 
             <span class="panel-label">Editor</span>
           </div>
 
-          <div class="editor-placeholder">
-            <span class="line-number">1</span>
-            <span class="code-line">&lt;h1&gt;Hello DevCanvas&lt;/h1&gt;</span>
-            <br>
-            <span class="line-number">2</span>
-            <span class="code-line">&lt;p&gt;Start building your project.&lt;/p&gt;</span>
+          <div class="editor-container">
+            <textarea id="html-editor" class="code-editor active"><h1>Hello DevCanvas</h1>
+<p>Start building your project.</p></textarea>
+
+            <textarea id="css-editor" class="code-editor">body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 40px;
+}
+
+h1 {
+  color: #2563eb;
+}</textarea>
+
+            <textarea id="javascript-editor" class="code-editor">console.log("DevCanvas is running");</textarea>
           </div>
         </div>
 
@@ -78,28 +87,28 @@
             </div>
           </div>
 
-          <div class="preview-placeholder">
-            <div class="preview-message">
-              <h2>Hello DevCanvas</h2>
-              <p>Your rendered website will appear here.</p>
-            </div>
-          </div>
+          <iframe
+            id="preview-frame"
+            class="preview-frame"
+            sandbox="allow-scripts"
+            title="DevCanvas Preview">
+          </iframe>
         </div>
       </section>
 
       <section class="console-panel">
         <div class="panel-header">
           <span>Console</span>
-          <button class="small-button">Clear</button>
+          <button class="small-button" id="clear-console-button">Clear</button>
         </div>
 
-        <div class="console-placeholder">
+        <div class="console-placeholder" id="console-output">
           <p>&gt; Console output will appear here.</p>
         </div>
       </section>
     </main>
   </div>
 
-  <script type="module" src="./js/app.js"></script>
+  <script type="module" src="./js/workspace.js"></script>
 </body>
 </html>
