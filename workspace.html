@@ -46,23 +46,25 @@
         </div>
       </div>
 
-      <section class="workspace-layout">
-        <div class="editor-panel">
-          <div class="panel-header">
-            <div class="editor-tabs">
-              <button class="editor-tab active" data-editor="html">HTML</button>
-              <button class="editor-tab" data-editor="css">CSS</button>
-              <button class="editor-tab" data-editor="javascript">JavaScript</button>
+      <div class="workspace-stage">
+        <section class="workspace-layout">
+          <div class="editor-panel">
+            <div class="panel-header">
+              <div class="editor-tabs">
+                <button class="editor-tab active" data-editor="html">HTML</button>
+                <button class="editor-tab" data-editor="css">CSS</button>
+                <button class="editor-tab" data-editor="javascript">JavaScript</button>
+              </div>
+
+              <span class="panel-label">Editor</span>
             </div>
 
-            <span class="panel-label">Editor</span>
-          </div>
+            <div class="editor-container">
+              <textarea id="html-editor" class="code-editor active"><h1>Hello DevCanvas</h1>
+<p>Start building your project.</p>
+<h2>How are u</h2></textarea>
 
-          <div class="editor-container">
-            <textarea id="html-editor" class="code-editor active"><h1>Hello DevCanvas</h1>
-<p>Start building your project.</p></textarea>
-
-            <textarea id="css-editor" class="code-editor">body {
+              <textarea id="css-editor" class="code-editor">body {
   font-family: Arial, sans-serif;
   text-align: center;
   padding: 40px;
@@ -72,40 +74,60 @@ h1 {
   color: #2563eb;
 }</textarea>
 
-            <textarea id="javascript-editor" class="code-editor">console.log("DevCanvas is running");</textarea>
-          </div>
-        </div>
+              <textarea id="javascript-editor" class="code-editor">console.log("DevCanvas is running");
 
-        <div class="preview-panel">
-          <div class="panel-header">
-            <span>Live Preview</span>
-
-            <div class="preview-actions">
-              <button class="small-button active">Desktop</button>
-              <button class="small-button">Tablet</button>
-              <button class="small-button">Mobile</button>
+console.info("Preview loaded successfully");</textarea>
             </div>
           </div>
 
-          <iframe
-            id="preview-frame"
-            class="preview-frame"
-            sandbox="allow-scripts"
-            title="DevCanvas Preview">
-          </iframe>
-        </div>
-      </section>
+          <div class="preview-panel">
+            <div class="panel-header">
+              <span>Live Preview</span>
 
-      <section class="console-panel">
-        <div class="panel-header">
-          <span>Console</span>
-          <button class="small-button" id="clear-console-button">Clear</button>
-        </div>
+              <div class="preview-actions">
+                <button
+                  class="console-icon-button"
+                  id="console-toggle-button"
+                  aria-label="Open Console"
+                  data-tooltip="Open Console">
+                  &gt;_
+                </button>
 
-        <div class="console-placeholder" id="console-output">
-          <p>&gt; Console output will appear here.</p>
-        </div>
-      </section>
+                <button class="small-button active">Desktop</button>
+                <button class="small-button">Tablet</button>
+                <button class="small-button">Mobile</button>
+              </div>
+            </div>
+
+            <iframe
+              id="preview-frame"
+              class="preview-frame"
+              sandbox="allow-scripts"
+              title="DevCanvas Preview">
+            </iframe>
+          </div>
+        </section>
+
+        <section class="console-drawer" id="console-drawer">
+          <div class="console-header">
+            <div class="console-title">
+              <span class="console-indicator"></span>
+              <span>Console</span>
+              <span class="console-count" id="console-count">0</span>
+            </div>
+
+            <div class="console-actions">
+              <button class="console-action-button" id="clear-console-button">Clear</button>
+              <button class="console-action-button" id="expand-console-button" title="Expand console">↕</button>
+              <button class="console-action-button" id="close-console-button" title="Close console">×</button>
+            </div>
+          </div>
+
+          <div class="console-output" id="console-output">
+            <div class="console-empty">Console output will appear here.</div>
+          </div>
+        </section>
+      </div>
     </main>
   </div>
 
