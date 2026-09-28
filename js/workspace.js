@@ -1,3 +1,9 @@
+import {
+  createProject,
+  saveProject,
+  getProject
+} from "./projects.js";
+
 const tabs = document.querySelectorAll(".editor-tab");
 const editors = document.querySelectorAll(".code-editor");
 
@@ -6,7 +12,11 @@ const cssEditor = document.getElementById("css-editor");
 const javascriptEditor = document.getElementById("javascript-editor");
 
 const runButton = document.getElementById("run-button");
+const saveButton = document.getElementById("save-button");
+
 const previewFrame = document.getElementById("preview-frame");
+const projectNameElement = document.getElementById("project-name");
+const saveStatus = document.getElementById("save-status");
 
 const consoleToggleButton = document.getElementById("console-toggle-button");
 const consoleDrawer = document.getElementById("console-drawer");
@@ -19,6 +29,12 @@ const expandConsoleButton = document.getElementById("expand-console-button");
 
 let previewTimer;
 let consoleMessages = 0;
+let currentProject = null;
+
+function getProjectIdFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("id");
+}
 
 function switchEditor(editorName) {
   tabs.forEach(tab => {
@@ -61,10 +77,6 @@ closeConsoleButton.addEventListener("click", closeConsole);
 
 expandConsoleButton.addEventListener("click", () => {
   consoleDrawer.classList.toggle("expanded");
-
-  expandConsoleButton.textContent = consoleDrawer.classList.contains("expanded")
-    ? "↕"
-    : "↕";
 });
 
 function clearConsole() {
@@ -237,7 +249,10 @@ function schedulePreview() {
 }
 
 editors.forEach(editor => {
-  editor.addEventListener("input", schedulePreview);
+  editor.addEventListener("input", () => {
+    schedulePreview();
+    markProjectUnsaved();
+  });
 });
 
 runButton.addEventListener("click", () => {
@@ -261,4 +276,105 @@ window.addEventListener("message", event => {
   }
 });
 
-buildPreview();
+function markProjectUnsaved() {
+  saveStatus.textContent = "Unsaved changes";
+}
+
+function updateProjectURL(projectId) {
+  const url = new URL(window.location.href);
+
+  url.searchParams.set("id", projectId);
+
+  window.history.replaceState({}, "", url);
+}
+
+function getEditorData() {
+  return {
+    html: htmlEditor.value,
+    css: cssEditor.value,
+    javascript: javascriptEditor.value
+  };
+}
+
+async function handleSaveProject() {
+  try {
+    saveStatus.textContent = "Saving...";
+
+    const editorData = getEditorData();
+
+    if (!currentProject) {
+      const enteredName = window.prompt(
+        "Enter project name:",
+        "Untitled Project"
+      );
+
+      if (enteredName === null) {
+        saveStatus.textContent = "Not saved yet";
+        return;
+      }
+
+      currentProject = createProject({
+        name: enteredName.trim() || "Untitled Project",
+        ...editorData
+      });
+
+      updateProjectURL(currentProject.id);
+    } else {
+      currentProject.html = editorData.html;
+      currentProject.css = editorData.css;
+      currentProject.javascript = editorData.javascript;
+    }
+
+    await saveProject(currentProject);
+
+    projectNameElement.textContent = currentProject.name;
+    saveStatus.textContent = "Saved locally";
+  } catch (error) {
+    console.error("Failed to save project:", error);
+    saveStatus.textContent = "Save failed";
+  }
+}
+
+saveButton.addEventListener("click", handleSaveProject);
+
+async function loadExistingProject() {
+  const projectId = getProjectIdFromURL();
+
+  if (!projectId) {
+    buildPreview();
+    return;
+  }
+
+  try {
+    const project = await getProject(projectId);
+
+    if (!project) {
+      saveStatus.textContent = "Project not found";
+      buildPreview();
+      return;
+    }
+
+    currentProject = project;
+
+    htmlEditor.value = project.html;
+    cssEditor.value = project.css;
+    javascriptEditor.value = project.javascript;
+
+    projectNameElement.textContent = project.name;
+    saveStatus.textContent = "Saved locally";
+
+    currentProject.lastOpenedAt = Date.now();
+
+    await saveProject(currentProject);
+
+    buildPreview();
+  } catch (error) {
+    console.error("Failed to load project:", error);
+
+    saveStatus.textContent = "Unable to load project";
+
+    buildPreview();
+  }
+}
+
+loadExistingProject();
