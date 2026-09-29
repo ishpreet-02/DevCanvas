@@ -18,6 +18,7 @@ const javascriptEditor = document.getElementById("javascript-editor");
 const runButton = document.getElementById("run-button");
 const saveButton = document.getElementById("save-button");
 const renameButton = document.getElementById("rename-button");
+const dashboardLink = document.getElementById("dashboard-link");
 
 const previewFrame = document.getElementById("preview-frame");
 
@@ -42,13 +43,34 @@ const cancelRenameButton = document.getElementById("cancel-rename-button");
 let previewTimer;
 let autosaveTimer;
 let consoleMessages = 0;
+
 let currentProject = null;
-let isLoadingProject = false;
 let workspaceSettings = null;
+
+let isLoadingProject = false;
+let hasChanges = false;
+let pendingNavigation = null;
+let renameMode = "rename";
 
 const AUTOSAVE_DELAY = 1500;
 const PREVIEW_DELAY = 500;
 
+const starterProject = {
+  html: `<h1>Hello DevCanvas</h1>
+<p>Start building your project.</p>`,
+
+  css: `body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 40px;
+}
+
+h1 {
+  color: #4f7cff;
+}`,
+
+  javascript: `console.log("DevCanvas project started");`
+};
 
 function applyWorkspaceSettings() {
   if (!workspaceSettings) {
@@ -84,7 +106,6 @@ function applyWorkspaceSettings() {
 
 function getProjectIdFromURL() {
   const params = new URLSearchParams(window.location.search);
-
   return params.get("id");
 }
 
@@ -267,7 +288,9 @@ function createConsoleBridge() {
             source: "devcanvas-preview",
             type: "runtime-error",
             level: "error",
-            message: "Unhandled Promise Rejection: " + serialize(event.reason)
+            message:
+              "Unhandled Promise Rejection: " +
+              serialize(event.reason)
           }, "*");
         });
       })();
@@ -335,6 +358,18 @@ function applyEditorData(project) {
   javascriptEditor.value = project.javascript;
 }
 
+function applyStarterProject() {
+  htmlEditor.value = starterProject.html;
+  cssEditor.value = starterProject.css;
+  javascriptEditor.value = starterProject.javascript;
+
+  projectNameElement.textContent = "Untitled Project";
+
+  setSaveStatus("unsaved", "New project");
+
+  hasChanges = false;
+}
+
 function updateProjectURL(projectId) {
   const url = new URL(window.location.href);
 
@@ -345,6 +380,7 @@ function updateProjectURL(projectId) {
 
 async function saveCurrentProject() {
   if (!currentProject) {
+    openNameProjectDialog();
     return;
   }
 
@@ -359,10 +395,11 @@ async function saveCurrentProject() {
 
     await saveProject(currentProject);
 
+    hasChanges = false;
+
     markSaved();
   } catch (error) {
     console.error("Failed to save project:", error);
-
     markSaveError();
   }
 }
@@ -383,26 +420,35 @@ function scheduleAutosave() {
 
 editors.forEach(editor => {
   editor.addEventListener("input", () => {
+    if (isLoadingProject) {
+      return;
+    }
+
+    hasChanges = true;
+    markUnsaved();
+
     if (workspaceSettings?.livePreview) {
       schedulePreview();
     }
 
-    if (workspaceSettings?.autosave) {
+    if (currentProject && workspaceSettings?.autosave) {
       scheduleAutosave();
-    } else {
-      markUnsaved();
     }
   });
 });
 
 runButton.addEventListener("click", () => {
   clearTimeout(previewTimer);
-
   buildPreview();
 });
 
 saveButton.addEventListener("click", async () => {
   clearTimeout(autosaveTimer);
+
+  if (!currentProject) {
+    openNameProjectDialog();
+    return;
+  }
 
   await saveCurrentProject();
 });
@@ -425,10 +471,21 @@ window.addEventListener("message", event => {
 
 function openRenameDialog() {
   if (!currentProject) {
+    openNameProjectDialog();
     return;
   }
 
+  renameMode = "rename";
+
   renameProjectName.value = currentProject.name;
+
+  renameDialog.querySelector("h2").textContent = "Rename Project";
+
+  renameDialog.querySelector(".dialog-header p").textContent =
+    "Choose a new name for your DevCanvas project.";
+
+  renameDialog.querySelector('button[type="submit"]').textContent =
+    "Rename";
 
   renameDialog.showModal();
 
@@ -438,8 +495,32 @@ function openRenameDialog() {
   }, 0);
 }
 
+function openNameProjectDialog() {
+  renameMode = "create";
+
+  renameProjectName.value = "";
+
+  renameDialog.querySelector("h2").textContent = "Save New Project";
+
+  renameDialog.querySelector(".dialog-header p").textContent =
+    "Enter a name before saving this project.";
+
+  renameDialog.querySelector('button[type="submit"]').textContent =
+    "Save Project";
+
+  renameDialog.showModal();
+
+  setTimeout(() => {
+    renameProjectName.focus();
+  }, 0);
+}
+
 function closeRenameDialog() {
   renameDialog.close();
+
+  if (renameMode === "create") {
+    pendingNavigation = null;
+  }
 }
 
 renameButton.addEventListener("click", openRenameDialog);
@@ -447,10 +528,6 @@ cancelRenameButton.addEventListener("click", closeRenameDialog);
 
 renameForm.addEventListener("submit", async event => {
   event.preventDefault();
-
-  if (!currentProject) {
-    return;
-  }
 
   const newName = renameProjectName.value.trim();
 
@@ -460,6 +537,42 @@ renameForm.addEventListener("submit", async event => {
   }
 
   try {
+    if (renameMode === "create") {
+      const editorData = getEditorData();
+
+      currentProject = createProject({
+        name: newName,
+        ...editorData
+      });
+
+      markSaving();
+
+      await saveProject(currentProject);
+
+      updateProjectURL(currentProject.id);
+
+      projectNameElement.textContent = currentProject.name;
+
+      hasChanges = false;
+
+      markSaved();
+      renameDialog.close();
+
+      if (pendingNavigation) {
+        const destination = pendingNavigation;
+
+        pendingNavigation = null;
+
+        window.location.href = destination;
+      }
+
+      return;
+    }
+
+    if (!currentProject) {
+      return;
+    }
+
     currentProject.name = newName;
 
     await saveProject(currentProject);
@@ -467,68 +580,74 @@ renameForm.addEventListener("submit", async event => {
     projectNameElement.textContent = newName;
 
     markSaved();
-    closeRenameDialog();
+    renameDialog.close();
   } catch (error) {
-    console.error("Failed to rename project:", error);
-
+    console.error("Failed to save project:", error);
     markSaveError();
   }
 });
 
-async function createFallbackProject() {
-  const project = createProject({
-    name: "Untitled Project",
-    html: "<h1>Hello DevCanvas</h1>\n<p>Start building your project.</p>",
-    css: `body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  padding: 40px;
-}
+dashboardLink.addEventListener("click", event => {
+  if (currentProject || !hasChanges) {
+    return;
+  }
 
-h1 {
-  color: #4f7cff;
-}`,
-    javascript: 'console.log("DevCanvas project started");'
-  });
+  event.preventDefault();
 
-  await saveProject(project);
+  const shouldSave = window.confirm(
+    "You have changes in this new project. Do you want to save it before leaving?"
+  );
 
-  updateProjectURL(project.id);
+  if (!shouldSave) {
+    window.location.href = dashboardLink.href;
+    return;
+  }
 
-  return project;
-}
+  pendingNavigation = dashboardLink.href;
+
+  openNameProjectDialog();
+});
+
+window.addEventListener("beforeunload", event => {
+  if (!currentProject && hasChanges) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
 
 async function loadProject() {
   isLoadingProject = true;
 
   try {
     workspaceSettings = await getSettings();
+
     applyWorkspaceSettings();
-    
+
     const projectId = getProjectIdFromURL();
 
     if (projectId) {
       currentProject = await getProject(projectId);
     }
 
-    if (!currentProject) {
-      currentProject = await createFallbackProject();
+    if (currentProject) {
+      currentProject.lastOpenedAt = Date.now();
+
+      await saveProject(currentProject);
+
+      projectNameElement.textContent = currentProject.name;
+
+      applyEditorData(currentProject);
+
+      hasChanges = false;
+
+      markSaved();
+    } else {
+      applyStarterProject();
     }
-
-    currentProject.lastOpenedAt = Date.now();
-
-    await saveProject(currentProject);
-
-    projectNameElement.textContent = currentProject.name;
-
-    applyEditorData(currentProject);
-
-    markSaved();
 
     buildPreview();
   } catch (error) {
     console.error("Failed to load project:", error);
-
     markSaveError();
   } finally {
     isLoadingProject = false;
