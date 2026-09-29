@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./css/variables.css">
   <link rel="stylesheet" href="./css/base.css">
   <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/components.css">
 </head>
 
 <body>
@@ -28,6 +29,7 @@
       </div>
 
       <div class="topbar-actions">
+        <button class="secondary-button" id="rename-button">Rename</button>
         <button class="secondary-button" id="save-button">Save</button>
         <button class="primary-button" id="run-button">Run</button>
       </div>
@@ -41,8 +43,8 @@
         </div>
 
         <div class="workspace-status">
-          <span class="status-dot"></span>
-          <span id="save-status">Not saved yet</span>
+          <span class="status-dot unsaved" id="status-dot"></span>
+          <span id="save-status">Loading...</span>
         </div>
       </div>
 
@@ -60,23 +62,9 @@
             </div>
 
             <div class="editor-container">
-              <textarea id="html-editor" class="code-editor active"><h1>Hello DevCanvas</h1>
-<p>Start building your project.</p>
-<h2>How are u</h2></textarea>
-
-              <textarea id="css-editor" class="code-editor">body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  padding: 40px;
-}
-
-h1 {
-  color: #2563eb;
-}</textarea>
-
-              <textarea id="javascript-editor" class="code-editor">console.log("DevCanvas is running");
-
-console.info("Preview loaded successfully");</textarea>
+              <textarea id="html-editor" class="code-editor active"></textarea>
+              <textarea id="css-editor" class="code-editor"></textarea>
+              <textarea id="javascript-editor" class="code-editor"></textarea>
             </div>
           </div>
 
@@ -124,12 +112,47 @@ console.info("Preview loaded successfully");</textarea>
           </div>
 
           <div class="console-output" id="console-output">
-            <div class="console-empty">Console output will appear here.</div>
+            <div class="console-empty">
+              Console output will appear here.
+            </div>
           </div>
         </section>
       </div>
     </main>
   </div>
+
+  <dialog class="project-dialog" id="rename-dialog">
+    <form id="rename-form">
+      <div class="dialog-header">
+        <h2>Rename Project</h2>
+        <p>Choose a new name for your DevCanvas project.</p>
+      </div>
+
+      <div class="dialog-body">
+        <div class="form-group">
+          <label for="rename-project-name">Project Name</label>
+
+          <input
+            type="text"
+            id="rename-project-name"
+            class="form-input"
+            maxlength="60"
+            autocomplete="off"
+            required>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary-button" id="cancel-rename-button">
+          Cancel
+        </button>
+
+        <button type="submit" class="primary-button">
+          Rename
+        </button>
+      </div>
+    </form>
+  </dialog>
 
   <script type="module" src="./js/workspace.js"></script>
 </body>

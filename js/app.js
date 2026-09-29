@@ -1,17 +1,32 @@
 import {
+  createProject,
+  saveProject,
   getProjects,
   removeProject
 } from "./projects.js";
 
 const projectGrid = document.getElementById("project-grid");
 
-function openWorkspace(projectId = null) {
-  if (projectId) {
-    window.location.href = `./workspace.html?id=${projectId}`;
-    return;
-  }
+const newProjectDialog = document.getElementById("new-project-dialog");
+const newProjectForm = document.getElementById("new-project-form");
+const newProjectName = document.getElementById("new-project-name");
+const cancelProjectButton = document.getElementById("cancel-project-button");
 
-  window.location.href = "./workspace.html";
+function openWorkspace(projectId) {
+  window.location.href = `./workspace.html?id=${projectId}`;
+}
+
+function openNewProjectDialog() {
+  newProjectName.value = "";
+  newProjectDialog.showModal();
+
+  setTimeout(() => {
+    newProjectName.focus();
+  }, 0);
+}
+
+function closeNewProjectDialog() {
+  newProjectDialog.close();
 }
 
 function setupProjectButtons() {
@@ -19,33 +34,62 @@ function setupProjectButtons() {
   const heroNewProjectButton = document.getElementById("hero-new-project-button");
   const createProjectCard = document.getElementById("create-project-card");
 
-  if (newProjectButton) {
-    newProjectButton.addEventListener("click", () => {
-      openWorkspace();
-    });
-  }
+  newProjectButton?.addEventListener("click", openNewProjectDialog);
+  heroNewProjectButton?.addEventListener("click", openNewProjectDialog);
+  createProjectCard?.addEventListener("click", openNewProjectDialog);
 
-  if (heroNewProjectButton) {
-    heroNewProjectButton.addEventListener("click", () => {
-      openWorkspace();
-    });
-  }
-
-  if (createProjectCard) {
-    createProjectCard.addEventListener("click", () => {
-      openWorkspace();
-    });
-  }
+  cancelProjectButton?.addEventListener("click", closeNewProjectDialog);
 }
 
-function formatDate(timestamp) {
-  const date = new Date(timestamp);
+newProjectForm?.addEventListener("submit", async event => {
+  event.preventDefault();
 
-  return date.toLocaleDateString(undefined, {
+  const name = newProjectName.value.trim();
+
+  if (!name) {
+    newProjectName.focus();
+    return;
+  }
+
+  try {
+    const project = createProject({
+      name,
+      html: "<h1>Hello DevCanvas</h1>\n<p>Start building your project.</p>",
+      css: `body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 40px;
+}
+
+h1 {
+  color: #4f7cff;
+}`,
+      javascript: 'console.log("DevCanvas project started");'
+    });
+
+    await saveProject(project);
+
+    closeNewProjectDialog();
+    openWorkspace(project.id);
+  } catch (error) {
+    console.error("Failed to create project:", error);
+  }
+});
+
+function formatDate(timestamp) {
+  return new Date(timestamp).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric"
   });
+}
+
+function escapeHTML(value) {
+  const element = document.createElement("div");
+
+  element.textContent = value;
+
+  return element.innerHTML;
 }
 
 function createProjectCard(project) {
@@ -97,28 +141,21 @@ function createProjectCard(project) {
   deleteButton.addEventListener("click", async event => {
     event.stopPropagation();
 
-    const confirmed = window.confirm(
-      `Delete "${project.name}"?`
-    );
+    const confirmed = window.confirm(`Delete "${project.name}"?`);
 
     if (!confirmed) {
       return;
     }
 
-    await removeProject(project.id);
-
-    article.remove();
+    try {
+      await removeProject(project.id);
+      article.remove();
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+    }
   });
 
   return article;
-}
-
-function escapeHTML(value) {
-  const element = document.createElement("div");
-
-  element.textContent = value;
-
-  return element.innerHTML;
 }
 
 async function loadProjects() {
@@ -128,13 +165,10 @@ async function loadProjects() {
 
   try {
     const projects = await getProjects();
-
     const createCard = document.getElementById("create-project-card");
 
     projects.forEach(project => {
-      const card = createProjectCard(project);
-
-      projectGrid.insertBefore(card, createCard);
+      projectGrid.insertBefore(createProjectCard(project), createCard);
     });
   } catch (error) {
     console.error("Failed to load projects:", error);

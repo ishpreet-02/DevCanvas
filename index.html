@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./css/variables.css">
   <link rel="stylesheet" href="./css/base.css">
   <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/components.css">
 </head>
 
 <body>
@@ -100,7 +101,11 @@
             Ideas into reality
           </div>
 
-          <div class="scribble scribble-one">Code<br>Preview<br>Create →</div>
+          <div class="scribble scribble-one">
+            Code<br>
+            Preview<br>
+            Create →
+          </div>
         </div>
       </section>
 
@@ -142,10 +147,8 @@
         <div class="section-header-row">
           <div>
             <h2>Recent Projects</h2>
-            <p>Your recently opened DevCanvas projects will appear here.</p>
+            <p>Your saved DevCanvas projects.</p>
           </div>
-
-          <button class="view-all-button">View All →</button>
         </div>
 
         <div class="project-grid" id="project-grid">
@@ -161,6 +164,40 @@
     <div class="background-decoration bg-left"></div>
     <div class="background-decoration bg-right"></div>
   </div>
+
+  <dialog class="project-dialog" id="new-project-dialog">
+    <form id="new-project-form">
+      <div class="dialog-header">
+        <h2>Create New Project</h2>
+        <p>Give your project a name. You can rename it later.</p>
+      </div>
+
+      <div class="dialog-body">
+        <div class="form-group">
+          <label for="new-project-name">Project Name</label>
+
+          <input
+            type="text"
+            id="new-project-name"
+            class="form-input"
+            placeholder="My Project"
+            maxlength="60"
+            autocomplete="off"
+            required>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary-button" id="cancel-project-button">
+          Cancel
+        </button>
+
+        <button type="submit" class="primary-button">
+          Create Project
+        </button>
+      </div>
+    </form>
+  </dialog>
 
   <script type="module" src="./js/app.js"></script>
 </body>

@@ -13,10 +13,13 @@ const javascriptEditor = document.getElementById("javascript-editor");
 
 const runButton = document.getElementById("run-button");
 const saveButton = document.getElementById("save-button");
+const renameButton = document.getElementById("rename-button");
 
 const previewFrame = document.getElementById("preview-frame");
+
 const projectNameElement = document.getElementById("project-name");
 const saveStatus = document.getElementById("save-status");
+const statusDot = document.getElementById("status-dot");
 
 const consoleToggleButton = document.getElementById("console-toggle-button");
 const consoleDrawer = document.getElementById("console-drawer");
@@ -27,12 +30,23 @@ const clearConsoleButton = document.getElementById("clear-console-button");
 const closeConsoleButton = document.getElementById("close-console-button");
 const expandConsoleButton = document.getElementById("expand-console-button");
 
+const renameDialog = document.getElementById("rename-dialog");
+const renameForm = document.getElementById("rename-form");
+const renameProjectName = document.getElementById("rename-project-name");
+const cancelRenameButton = document.getElementById("cancel-rename-button");
+
 let previewTimer;
+let autosaveTimer;
 let consoleMessages = 0;
 let currentProject = null;
+let isLoadingProject = false;
+
+const AUTOSAVE_DELAY = 1500;
+const PREVIEW_DELAY = 500;
 
 function getProjectIdFromURL() {
   const params = new URLSearchParams(window.location.search);
+
   return params.get("id");
 }
 
@@ -53,6 +67,27 @@ tabs.forEach(tab => {
     switchEditor(tab.dataset.editor);
   });
 });
+
+function setSaveStatus(type, text) {
+  statusDot.className = `status-dot ${type}`;
+  saveStatus.textContent = text;
+}
+
+function markUnsaved() {
+  setSaveStatus("unsaved", "Unsaved changes");
+}
+
+function markSaving() {
+  setSaveStatus("saving", "Saving...");
+}
+
+function markSaved() {
+  setSaveStatus("saved", "Saved locally");
+}
+
+function markSaveError() {
+  setSaveStatus("error", "Save failed");
+}
 
 function openConsole() {
   consoleDrawer.classList.add("open");
@@ -245,19 +280,86 @@ function schedulePreview() {
 
   previewTimer = setTimeout(() => {
     buildPreview();
-  }, 500);
+  }, PREVIEW_DELAY);
+}
+
+function getEditorData() {
+  return {
+    html: htmlEditor.value,
+    css: cssEditor.value,
+    javascript: javascriptEditor.value
+  };
+}
+
+function applyEditorData(project) {
+  htmlEditor.value = project.html;
+  cssEditor.value = project.css;
+  javascriptEditor.value = project.javascript;
+}
+
+function updateProjectURL(projectId) {
+  const url = new URL(window.location.href);
+
+  url.searchParams.set("id", projectId);
+
+  window.history.replaceState({}, "", url);
+}
+
+async function saveCurrentProject() {
+  if (!currentProject) {
+    return;
+  }
+
+  try {
+    markSaving();
+
+    const editorData = getEditorData();
+
+    currentProject.html = editorData.html;
+    currentProject.css = editorData.css;
+    currentProject.javascript = editorData.javascript;
+
+    await saveProject(currentProject);
+
+    markSaved();
+  } catch (error) {
+    console.error("Failed to save project:", error);
+
+    markSaveError();
+  }
+}
+
+function scheduleAutosave() {
+  if (!currentProject || isLoadingProject) {
+    return;
+  }
+
+  clearTimeout(autosaveTimer);
+
+  markUnsaved();
+
+  autosaveTimer = setTimeout(() => {
+    saveCurrentProject();
+  }, AUTOSAVE_DELAY);
 }
 
 editors.forEach(editor => {
   editor.addEventListener("input", () => {
     schedulePreview();
-    markProjectUnsaved();
+    scheduleAutosave();
   });
 });
 
 runButton.addEventListener("click", () => {
   clearTimeout(previewTimer);
+
   buildPreview();
+});
+
+saveButton.addEventListener("click", async () => {
+  clearTimeout(autosaveTimer);
+
+  await saveCurrentProject();
 });
 
 window.addEventListener("message", event => {
@@ -276,105 +378,113 @@ window.addEventListener("message", event => {
   }
 });
 
-function markProjectUnsaved() {
-  saveStatus.textContent = "Unsaved changes";
-}
-
-function updateProjectURL(projectId) {
-  const url = new URL(window.location.href);
-
-  url.searchParams.set("id", projectId);
-
-  window.history.replaceState({}, "", url);
-}
-
-function getEditorData() {
-  return {
-    html: htmlEditor.value,
-    css: cssEditor.value,
-    javascript: javascriptEditor.value
-  };
-}
-
-async function handleSaveProject() {
-  try {
-    saveStatus.textContent = "Saving...";
-
-    const editorData = getEditorData();
-
-    if (!currentProject) {
-      const enteredName = window.prompt(
-        "Enter project name:",
-        "Untitled Project"
-      );
-
-      if (enteredName === null) {
-        saveStatus.textContent = "Not saved yet";
-        return;
-      }
-
-      currentProject = createProject({
-        name: enteredName.trim() || "Untitled Project",
-        ...editorData
-      });
-
-      updateProjectURL(currentProject.id);
-    } else {
-      currentProject.html = editorData.html;
-      currentProject.css = editorData.css;
-      currentProject.javascript = editorData.javascript;
-    }
-
-    await saveProject(currentProject);
-
-    projectNameElement.textContent = currentProject.name;
-    saveStatus.textContent = "Saved locally";
-  } catch (error) {
-    console.error("Failed to save project:", error);
-    saveStatus.textContent = "Save failed";
+function openRenameDialog() {
+  if (!currentProject) {
+    return;
   }
+
+  renameProjectName.value = currentProject.name;
+
+  renameDialog.showModal();
+
+  setTimeout(() => {
+    renameProjectName.focus();
+    renameProjectName.select();
+  }, 0);
 }
 
-saveButton.addEventListener("click", handleSaveProject);
+function closeRenameDialog() {
+  renameDialog.close();
+}
 
-async function loadExistingProject() {
-  const projectId = getProjectIdFromURL();
+renameButton.addEventListener("click", openRenameDialog);
+cancelRenameButton.addEventListener("click", closeRenameDialog);
 
-  if (!projectId) {
-    buildPreview();
+renameForm.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (!currentProject) {
+    return;
+  }
+
+  const newName = renameProjectName.value.trim();
+
+  if (!newName) {
+    renameProjectName.focus();
     return;
   }
 
   try {
-    const project = await getProject(projectId);
+    currentProject.name = newName;
 
-    if (!project) {
-      saveStatus.textContent = "Project not found";
-      buildPreview();
-      return;
+    await saveProject(currentProject);
+
+    projectNameElement.textContent = newName;
+
+    markSaved();
+    closeRenameDialog();
+  } catch (error) {
+    console.error("Failed to rename project:", error);
+
+    markSaveError();
+  }
+});
+
+async function createFallbackProject() {
+  const project = createProject({
+    name: "Untitled Project",
+    html: "<h1>Hello DevCanvas</h1>\n<p>Start building your project.</p>",
+    css: `body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 40px;
+}
+
+h1 {
+  color: #4f7cff;
+}`,
+    javascript: 'console.log("DevCanvas project started");'
+  });
+
+  await saveProject(project);
+
+  updateProjectURL(project.id);
+
+  return project;
+}
+
+async function loadProject() {
+  isLoadingProject = true;
+
+  try {
+    const projectId = getProjectIdFromURL();
+
+    if (projectId) {
+      currentProject = await getProject(projectId);
     }
 
-    currentProject = project;
-
-    htmlEditor.value = project.html;
-    cssEditor.value = project.css;
-    javascriptEditor.value = project.javascript;
-
-    projectNameElement.textContent = project.name;
-    saveStatus.textContent = "Saved locally";
+    if (!currentProject) {
+      currentProject = await createFallbackProject();
+    }
 
     currentProject.lastOpenedAt = Date.now();
 
     await saveProject(currentProject);
 
+    projectNameElement.textContent = currentProject.name;
+
+    applyEditorData(currentProject);
+
+    markSaved();
+
     buildPreview();
   } catch (error) {
     console.error("Failed to load project:", error);
 
-    saveStatus.textContent = "Unable to load project";
-
-    buildPreview();
+    markSaveError();
+  } finally {
+    isLoadingProject = false;
   }
 }
 
-loadExistingProject();
+loadProject();
