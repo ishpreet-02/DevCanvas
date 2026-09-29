@@ -1,6 +1,8 @@
 const DATABASE_NAME = "DevCanvasDB";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
+
 const PROJECT_STORE = "projects";
+const SETTINGS_STORE = "settings";
 
 export function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -10,20 +12,26 @@ export function openDatabase() {
       const database = event.target.result;
 
       if (!database.objectStoreNames.contains(PROJECT_STORE)) {
-        const store = database.createObjectStore(PROJECT_STORE, {
+        const projectStore = database.createObjectStore(PROJECT_STORE, {
           keyPath: "id"
         });
 
-        store.createIndex("name", "name", {
+        projectStore.createIndex("name", "name", {
           unique: false
         });
 
-        store.createIndex("updatedAt", "updatedAt", {
+        projectStore.createIndex("updatedAt", "updatedAt", {
           unique: false
         });
 
-        store.createIndex("lastOpenedAt", "lastOpenedAt", {
+        projectStore.createIndex("lastOpenedAt", "lastOpenedAt", {
           unique: false
+        });
+      }
+
+      if (!database.objectStoreNames.contains(SETTINGS_STORE)) {
+        database.createObjectStore(SETTINGS_STORE, {
+          keyPath: "id"
         });
       }
     };
@@ -108,6 +116,43 @@ export async function deleteProjectRecord(projectId) {
 
     transaction.onerror = () => {
       reject(transaction.error);
+    };
+  });
+}
+
+export async function saveSettingsRecord(settings) {
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(SETTINGS_STORE, "readwrite");
+    const store = transaction.objectStore(SETTINGS_STORE);
+
+    store.put(settings);
+
+    transaction.oncomplete = () => {
+      resolve(settings);
+    };
+
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
+  });
+}
+
+export async function getSettingsRecord(settingsId) {
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(SETTINGS_STORE, "readonly");
+    const store = transaction.objectStore(SETTINGS_STORE);
+    const request = store.get(settingsId);
+
+    request.onsuccess = () => {
+      resolve(request.result || null);
+    };
+
+    request.onerror = () => {
+      reject(request.error);
     };
   });
 }

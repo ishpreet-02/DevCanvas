@@ -4,6 +4,10 @@ import {
   getProject
 } from "./projects.js";
 
+import {
+  getSettings
+} from "./settings.js";
+
 const tabs = document.querySelectorAll(".editor-tab");
 const editors = document.querySelectorAll(".code-editor");
 
@@ -40,9 +44,43 @@ let autosaveTimer;
 let consoleMessages = 0;
 let currentProject = null;
 let isLoadingProject = false;
+let workspaceSettings = null;
 
 const AUTOSAVE_DELAY = 1500;
 const PREVIEW_DELAY = 500;
+
+
+function applyWorkspaceSettings() {
+  if (!workspaceSettings) {
+    return;
+  }
+
+  editors.forEach(editor => {
+    editor.style.fontSize = `${workspaceSettings.fontSize}px`;
+    editor.style.tabSize = workspaceSettings.tabSize;
+
+    editor.classList.toggle(
+      "editor-theme-light",
+      workspaceSettings.editorTheme === "light"
+    );
+  });
+
+  const editorContainer = document.querySelector(".editor-container");
+
+  editorContainer.classList.toggle(
+    "editor-theme-light",
+    workspaceSettings.editorTheme === "light"
+  );
+
+  consoleToggleButton.classList.toggle(
+    "console-disabled",
+    !workspaceSettings.showConsole
+  );
+
+  if (!workspaceSettings.showConsole) {
+    closeConsole();
+  }
+}
 
 function getProjectIdFromURL() {
   const params = new URLSearchParams(window.location.search);
@@ -345,8 +383,15 @@ function scheduleAutosave() {
 
 editors.forEach(editor => {
   editor.addEventListener("input", () => {
-    schedulePreview();
-    scheduleAutosave();
+    if (workspaceSettings?.livePreview) {
+      schedulePreview();
+    }
+
+    if (workspaceSettings?.autosave) {
+      scheduleAutosave();
+    } else {
+      markUnsaved();
+    }
   });
 });
 
@@ -457,6 +502,9 @@ async function loadProject() {
   isLoadingProject = true;
 
   try {
+    workspaceSettings = await getSettings();
+    applyWorkspaceSettings();
+    
     const projectId = getProjectIdFromURL();
 
     if (projectId) {

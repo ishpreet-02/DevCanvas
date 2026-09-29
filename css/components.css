@@ -102,6 +102,46 @@
 .status-dot.error {
   background: #ef4444;
 }
+.settings-save-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.settings-save-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.settings-save-dot.saving {
+  background: #3b82f6;
+  animation: statusPulse 1s infinite;
+}
+
+.settings-save-dot.saved {
+  background: #22c55e;
+}
+
+.settings-save-dot.error {
+  background: #ef4444;
+}
+
+.code-editor.editor-theme-light {
+  background: #ffffff;
+  color: #1f2937;
+}
+
+.editor-container.editor-theme-light {
+  background: #ffffff;
+}
+
+.console-disabled {
+  display: none !important;
+}
 
 @keyframes statusPulse {
   0%,
