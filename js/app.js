@@ -5,12 +5,21 @@ import {
   removeProject
 } from "./projects.js";
 
+import {
+  readProjectFiles,
+  createImportedProjectName
+} from "./files.js";
+
 const projectGrid = document.getElementById("project-grid");
 
 const newProjectDialog = document.getElementById("new-project-dialog");
 const newProjectForm = document.getElementById("new-project-form");
 const newProjectName = document.getElementById("new-project-name");
 const cancelProjectButton = document.getElementById("cancel-project-button");
+
+const importProjectButton = document.getElementById("import-project-button");
+const heroImportProjectButton = document.getElementById("hero-import-project-button");
+const dashboardFileInput = document.getElementById("dashboard-file-input");
 
 function openWorkspace(projectId) {
   window.location.href = `./workspace.html?id=${projectId}`;
@@ -29,6 +38,10 @@ function closeNewProjectDialog() {
   newProjectDialog.close();
 }
 
+function openFilePicker() {
+  dashboardFileInput.click();
+}
+
 function setupProjectButtons() {
   const newProjectButton = document.getElementById("new-project-button");
   const heroNewProjectButton = document.getElementById("hero-new-project-button");
@@ -37,6 +50,9 @@ function setupProjectButtons() {
   newProjectButton?.addEventListener("click", openNewProjectDialog);
   heroNewProjectButton?.addEventListener("click", openNewProjectDialog);
   createProjectCard?.addEventListener("click", openNewProjectDialog);
+
+  importProjectButton?.addEventListener("click", openFilePicker);
+  heroImportProjectButton?.addEventListener("click", openFilePicker);
 
   cancelProjectButton?.addEventListener("click", closeNewProjectDialog);
 }
@@ -54,7 +70,10 @@ newProjectForm?.addEventListener("submit", async event => {
   try {
     const project = createProject({
       name,
-      html: "<h1>Hello DevCanvas</h1>\n<p>Start building your project.</p>",
+
+      html: `<h1>Hello DevCanvas</h1>
+<p>Start building your project.</p>`,
+
       css: `body {
   font-family: Arial, sans-serif;
   text-align: center;
@@ -64,15 +83,49 @@ newProjectForm?.addEventListener("submit", async event => {
 h1 {
   color: #4f7cff;
 }`,
-      javascript: 'console.log("DevCanvas project started");'
+
+      javascript: `console.log("DevCanvas project started");`
     });
 
     await saveProject(project);
 
     closeNewProjectDialog();
+
     openWorkspace(project.id);
   } catch (error) {
     console.error("Failed to create project:", error);
+  }
+});
+
+dashboardFileInput?.addEventListener("change", async event => {
+  const files = event.target.files;
+
+  if (!files || files.length === 0) {
+    return;
+  }
+
+  try {
+    const { projectData } = await readProjectFiles(files);
+
+    const project = createProject({
+      name: createImportedProjectName(files),
+
+      html: projectData.html || "",
+      css: projectData.css || "",
+      javascript: projectData.javascript || ""
+    });
+
+    await saveProject(project);
+
+    dashboardFileInput.value = "";
+
+    openWorkspace(project.id);
+  } catch (error) {
+    console.error("Failed to import project:", error);
+
+    alert(error.message);
+
+    dashboardFileInput.value = "";
   }
 });
 
@@ -141,7 +194,9 @@ function createProjectCard(project) {
   deleteButton.addEventListener("click", async event => {
     event.stopPropagation();
 
-    const confirmed = window.confirm(`Delete "${project.name}"?`);
+    const confirmed = window.confirm(
+      `Delete "${project.name}"?`
+    );
 
     if (!confirmed) {
       return;
@@ -149,6 +204,7 @@ function createProjectCard(project) {
 
     try {
       await removeProject(project.id);
+
       article.remove();
     } catch (error) {
       console.error("Failed to delete project:", error);
@@ -165,10 +221,14 @@ async function loadProjects() {
 
   try {
     const projects = await getProjects();
+
     const createCard = document.getElementById("create-project-card");
 
     projects.forEach(project => {
-      projectGrid.insertBefore(createProjectCard(project), createCard);
+      projectGrid.insertBefore(
+        createProjectCard(project),
+        createCard
+      );
     });
   } catch (error) {
     console.error("Failed to load projects:", error);

@@ -8,6 +8,10 @@ import {
   getSettings
 } from "./settings.js";
 
+import {
+  readProjectFiles
+} from "./files.js";
+
 const tabs = document.querySelectorAll(".editor-tab");
 const editors = document.querySelectorAll(".code-editor");
 
@@ -39,6 +43,9 @@ const renameDialog = document.getElementById("rename-dialog");
 const renameForm = document.getElementById("rename-form");
 const renameProjectName = document.getElementById("rename-project-name");
 const cancelRenameButton = document.getElementById("cancel-rename-button");
+
+const importFilesButton = document.getElementById("import-files-button");
+const workspaceFileInput = document.getElementById("workspace-file-input");
 
 let previewTimer;
 let autosaveTimer;
@@ -358,6 +365,34 @@ function applyEditorData(project) {
   javascriptEditor.value = project.javascript;
 }
 
+function importFilesIntoEditors(projectData) {
+  if (projectData.html !== null) {
+    htmlEditor.value = projectData.html;
+  }
+
+  if (projectData.css !== null) {
+    cssEditor.value = projectData.css;
+  }
+
+  if (projectData.javascript !== null) {
+    javascriptEditor.value = projectData.javascript;
+  }
+
+  hasChanges = true;
+
+  markUnsaved();
+
+  buildPreview();
+
+  if (currentProject && workspaceSettings?.autosave) {
+    scheduleAutosave();
+  }
+}
+
+function openWorkspaceFilePicker() {
+  workspaceFileInput.click();
+}
+
 function applyStarterProject() {
   htmlEditor.value = starterProject.html;
   cssEditor.value = starterProject.css;
@@ -451,6 +486,28 @@ saveButton.addEventListener("click", async () => {
   }
 
   await saveCurrentProject();
+});
+
+importFilesButton.addEventListener("click", openWorkspaceFilePicker);
+
+workspaceFileInput.addEventListener("change", async event => {
+  const files = event.target.files;
+
+  if (!files || files.length === 0) {
+    return;
+  }
+
+  try {
+    const { projectData } = await readProjectFiles(files);
+
+    importFilesIntoEditors(projectData);
+  } catch (error) {
+    console.error("Failed to import files:", error);
+
+    alert(error.message);
+  } finally {
+    workspaceFileInput.value = "";
+  }
 });
 
 window.addEventListener("message", event => {

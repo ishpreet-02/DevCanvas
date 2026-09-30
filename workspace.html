@@ -29,9 +29,21 @@
       </div>
 
       <div class="topbar-actions">
-        <button class="secondary-button" id="rename-button">Rename</button>
-        <button class="secondary-button" id="save-button">Save</button>
-        <button class="primary-button" id="run-button">Run</button>
+        <button class="secondary-button" id="import-files-button">
+          Import
+        </button>
+
+        <button class="secondary-button" id="rename-button">
+          Rename
+        </button>
+
+        <button class="secondary-button" id="save-button">
+          Save
+        </button>
+
+        <button class="primary-button" id="run-button">
+          Run
+        </button>
       </div>
     </header>
 
@@ -153,7 +165,12 @@
       </div>
     </form>
   </dialog>
-
+  <input
+    type="file"
+    id="workspace-file-input"
+    accept=".html,.css,.js"
+    multiple
+    hidden>
   <script type="module" src="./js/workspace.js"></script>
 </body>
 </html>
