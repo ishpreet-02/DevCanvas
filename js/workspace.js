@@ -12,6 +12,10 @@ import {
   readProjectFiles
 } from "./files.js";
 
+import {
+  exportProjectFiles
+} from "./export.js";
+
 const tabs = document.querySelectorAll(".editor-tab");
 const editors = document.querySelectorAll(".code-editor");
 
@@ -45,6 +49,7 @@ const renameProjectName = document.getElementById("rename-project-name");
 const cancelRenameButton = document.getElementById("cancel-rename-button");
 
 const importFilesButton = document.getElementById("import-files-button");
+const exportProjectButton = document.getElementById("export-project-button");
 const workspaceFileInput = document.getElementById("workspace-file-input");
 
 let previewTimer;
@@ -489,6 +494,12 @@ saveButton.addEventListener("click", async () => {
 });
 
 importFilesButton.addEventListener("click", openWorkspaceFilePicker);
+
+exportProjectButton.addEventListener("click", () => {
+  const projectData = getEditorData();
+
+  exportProjectFiles(projectData);
+});
 
 workspaceFileInput.addEventListener("change", async event => {
   const files = event.target.files;
