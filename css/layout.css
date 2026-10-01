@@ -843,6 +843,18 @@
   font-size: 12px;
 }
 
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#copy-code-button.copied {
+  color: #16a34a;
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+
 .editor-container {
   flex: 1;
   min-height: 0;

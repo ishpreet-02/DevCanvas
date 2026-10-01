@@ -50,6 +50,7 @@ const cancelRenameButton = document.getElementById("cancel-rename-button");
 
 const importFilesButton = document.getElementById("import-files-button");
 const exportProjectButton = document.getElementById("export-project-button");
+const copyCodeButton = document.getElementById("copy-code-button");
 const workspaceFileInput = document.getElementById("workspace-file-input");
 
 let previewTimer;
@@ -138,6 +139,40 @@ tabs.forEach(tab => {
     switchEditor(tab.dataset.editor);
   });
 });
+
+function getActiveEditor() {
+  return document.querySelector(".code-editor.active");
+}
+
+async function copyActiveEditorCode() {
+  const activeEditor = getActiveEditor();
+
+  if (!activeEditor) {
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(activeEditor.value);
+
+    copyCodeButton.textContent = "Copied";
+    copyCodeButton.classList.add("copied");
+
+    setTimeout(() => {
+      copyCodeButton.textContent = "Copy";
+      copyCodeButton.classList.remove("copied");
+    }, 1200);
+  } catch (error) {
+    console.error("Failed to copy code:", error);
+
+    copyCodeButton.textContent = "Failed";
+
+    setTimeout(() => {
+      copyCodeButton.textContent = "Copy";
+    }, 1200);
+  }
+}
+
+copyCodeButton.addEventListener("click", copyActiveEditorCode);
 
 function setSaveStatus(type, text) {
   statusDot.className = `status-dot ${type}`;
