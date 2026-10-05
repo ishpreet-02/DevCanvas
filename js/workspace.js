@@ -29,6 +29,8 @@ const renameButton = document.getElementById("rename-button");
 const dashboardLink = document.getElementById("dashboard-link");
 
 const previewFrame = document.getElementById("preview-frame");
+const previewSizeButtons = document.querySelectorAll(".preview-size-button");
+const previewDevice = document.getElementById("preview-device");
 
 const projectNameElement = document.getElementById("project-name");
 const saveStatus = document.getElementById("save-status");
@@ -140,6 +142,29 @@ tabs.forEach(tab => {
   });
 });
 
+function setPreviewSize(size) {
+  previewDevice.classList.remove(
+    "desktop",
+    "tablet",
+    "mobile"
+  );
+
+  previewDevice.classList.add(size);
+
+  previewSizeButtons.forEach(button => {
+    button.classList.toggle(
+      "active",
+      button.dataset.previewSize === size
+    );
+  });
+}
+
+previewSizeButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    setPreviewSize(button.dataset.previewSize);
+  });
+});
+
 function getActiveEditor() {
   return document.querySelector(".code-editor.active");
 }
@@ -198,6 +223,7 @@ function markSaveError() {
 function openConsole() {
   consoleDrawer.classList.add("open");
   consoleToggleButton.classList.add("open");
+  consoleToggleButton.classList.remove("has-error");
 }
 
 function closeConsole() {
@@ -260,7 +286,7 @@ function addConsoleMessage(level, message) {
   consoleOutput.scrollTop = consoleOutput.scrollHeight;
 
   if (level === "error") {
-    openConsole();
+    consoleToggleButton.classList.add("has-error");
   }
 }
 

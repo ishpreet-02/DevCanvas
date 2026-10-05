@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="./css/components.css">
 </head>
 
-<body>
+<body class="workspace-page">
   <div class="app">
     <header class="topbar">
       <div class="brand-section">
@@ -100,18 +100,30 @@
                   &gt;_
                 </button>
 
-                <button class="small-button active">Desktop</button>
-                <button class="small-button">Tablet</button>
-                <button class="small-button">Mobile</button>
+                <button class="small-button preview-size-button active" data-preview-size="desktop">
+                  Desktop
+                </button>
+
+                <button class="small-button preview-size-button" data-preview-size="tablet">
+                  Tablet · 768
+                </button>
+
+                <button class="small-button preview-size-button" data-preview-size="mobile">
+                  Mobile · 375
+                </button>
               </div>
             </div>
 
-            <iframe
-              id="preview-frame"
-              class="preview-frame"
-              sandbox="allow-scripts"
-              title="DevCanvas Preview">
-            </iframe>
+            <div class="preview-viewport">
+              <div class="preview-device desktop" id="preview-device">
+                <iframe
+                  id="preview-frame"
+                  class="preview-frame"
+                  sandbox="allow-scripts"
+                  title="DevCanvas Preview">
+                </iframe>
+              </div>
+            </div>
           </div>
         </section>
 

@@ -719,19 +719,37 @@
   background: rgba(59, 130, 246, 0.12);
 }
 /* =========================
-   WORKSPACE PAGE
+   WORKSPACE LAYOUT
 ========================= */
 
-.workspace-main {
-  height: calc(100vh - 64px);
+.workspace-page {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.workspace-page .app {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 20px 28px 24px;
+  overflow: hidden;
+}
+
+.workspace-page .topbar {
+  flex-shrink: 0;
+}
+
+.workspace-main {
+  flex: 1;
+  height: calc(100vh - 64px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 26px 22px;
+  overflow: hidden;
   background:
     radial-gradient(circle at 72% 10%, rgba(79, 124, 255, 0.08), transparent 18%),
     radial-gradient(circle at 75% 12%, rgba(139, 92, 246, 0.06), transparent 16%),
     #f7f8fc;
-  overflow: hidden;
 }
 
 .workspace-toolbar {
@@ -771,16 +789,20 @@
 .workspace-layout {
   width: 100%;
   height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .editor-panel,
 .preview-panel {
   min-width: 0;
+  min-height: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .editor-panel {
@@ -792,14 +814,15 @@
   min-height: 0;
   position: relative;
   overflow: hidden;
+  background: #ffffff;
   border: 1px solid var(--border-primary);
   border-radius: 16px;
-  background: #ffffff;
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
 }
 
 .panel-header {
   height: 50px;
+  min-height: 50px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -809,6 +832,7 @@
   border-bottom: 1px solid var(--border-primary);
   color: var(--text-secondary);
   font-size: 13px;
+  z-index: 5;
 }
 
 .editor-tabs {
@@ -858,6 +882,8 @@
 .editor-container {
   flex: 1;
   min-height: 0;
+  position: relative;
+  overflow: hidden;
   background: #111827;
 }
 
@@ -865,31 +891,97 @@
   display: none;
   width: 100%;
   height: 100%;
+  min-height: 0;
+  max-height: 100%;
   padding: 22px;
   border: 0;
   outline: none;
   resize: none;
+  overflow-x: auto;
+  overflow-y: auto;
   background: #111827;
   color: #dbeafe;
   font-family: Consolas, "Liberation Mono", monospace;
   font-size: 14px;
   line-height: 1.8;
   tab-size: 2;
+  white-space: pre;
 }
 
 .code-editor.active {
   display: block;
 }
 
+.code-editor::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.code-editor::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+.code-editor::-webkit-scrollbar-thumb {
+  background: #374151;
+  border: 2px solid #111827;
+  border-radius: 10px;
+}
+
+.code-editor::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
 .preview-actions {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+}
+
+.preview-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 16px;
+  overflow: auto;
+  background:
+    linear-gradient(45deg, #f7f8fc 25%, transparent 25%),
+    linear-gradient(-45deg, #f7f8fc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f7f8fc 75%),
+    linear-gradient(-45deg, transparent 75%, #f7f8fc 75%);
+  background-size: 22px 22px;
+  background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+}
+
+.preview-device {
+  height: 100%;
+  min-height: 0;
+  background: #ffffff;
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  transition: width 220ms ease;
+}
+
+.preview-device.desktop {
+  width: 100%;
+}
+
+.preview-device.tablet {
+  width: min(768px, 80%);
+}
+
+.preview-device.mobile {
+  width: min(375px, 100%);
 }
 
 .preview-frame {
-  flex: 1;
+  display: block;
   width: 100%;
+  height: 100%;
   min-height: 0;
   border: 0;
   background: #ffffff;
@@ -953,18 +1045,25 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 20;
+  z-index: 30;
   display: flex;
   flex-direction: column;
-  background: #111827;
-  border-top: 1px solid #243046;
+  background: #0f172a;
+  border-top: 1px solid #263247;
   transform: translateY(100%);
-  transition: transform 220ms ease, height 220ms ease;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 220ms ease,
+    height 220ms ease,
+    visibility 220ms ease;
   box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.14);
 }
 
 .console-drawer.open {
   transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .console-drawer.expanded {
@@ -1195,16 +1294,30 @@
 .console-icon-button:hover::after {
   transform: translateY(0);
 }
+
+.console-icon-button.has-error {
+  position: relative;
+  border-color: #fecaca;
+}
+
+.console-icon-button.has-error::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  border: 0;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px #ffffff;
+  opacity: 1;
+  visibility: visible;
+}
+
 @media (max-width: 850px) {
   .workspace-main {
-    height: auto;
-    min-height: calc(100vh - 64px);
-    overflow: visible;
     padding: 20px;
-  }
-
-  .workspace-stage {
-    min-height: 750px;
   }
 
   .workspace-layout {
@@ -1337,38 +1450,6 @@
 
 .switch input:checked + .slider::before {
   transform: translateX(19px);
-}
-
-.editor-container {
-  min-height: 520px;
-  background: #111827;
-}
-
-.code-editor {
-  display: none;
-  width: 100%;
-  min-height: 520px;
-  padding: 22px;
-  border: 0;
-  outline: none;
-  resize: none;
-  background: #13161b;
-  color: #dbeafe;
-  font-family: Consolas, "Liberation Mono", monospace;
-  font-size: 14px;
-  line-height: 1.8;
-  tab-size: 2;
-}
-
-.code-editor.active {
-  display: block;
-}
-
-.preview-frame {
-  width: 100%;
-  min-height: 520px;
-  border: 0;
-  background: #ffffff;
 }
 
 .console-placeholder p {
