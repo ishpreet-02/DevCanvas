@@ -16,6 +16,15 @@ import {
   exportProjectFiles
 } from "./export.js";
 
+import {
+  createUIHelpers
+} from "./ui.js";
+
+const {
+  showConfirm,
+  showToast
+} = createUIHelpers();
+
 const tabs = document.querySelectorAll(".editor-tab");
 const editors = document.querySelectorAll(".code-editor");
 
@@ -190,6 +199,7 @@ async function copyActiveEditorCode() {
     console.error("Failed to copy code:", error);
 
     copyCodeButton.textContent = "Failed";
+    showToast("Unable to copy code to clipboard.", "error");
 
     setTimeout(() => {
       copyCodeButton.textContent = "Copy";
@@ -576,7 +586,7 @@ workspaceFileInput.addEventListener("change", async event => {
   } catch (error) {
     console.error("Failed to import files:", error);
 
-    alert(error.message);
+    showToast(error.message || "Unable to import project files.", "error");
   } finally {
     workspaceFileInput.value = "";
   }
@@ -716,16 +726,20 @@ renameForm.addEventListener("submit", async event => {
   }
 });
 
-dashboardLink.addEventListener("click", event => {
+dashboardLink.addEventListener("click", async event => {
   if (currentProject || !hasChanges) {
     return;
   }
 
   event.preventDefault();
 
-  const shouldSave = window.confirm(
-    "You have changes in this new project. Do you want to save it before leaving?"
-  );
+  const shouldSave = await showConfirm({
+    title: "Save your project?",
+    message:
+      "You have unsaved changes in this workspace. Save the project before leaving?",
+    confirmText: "Save Project",
+    cancelText: "Discard"
+  });
 
   if (!shouldSave) {
     window.location.href = dashboardLink.href;

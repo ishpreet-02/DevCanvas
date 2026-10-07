@@ -194,9 +194,13 @@ function createProjectCard(project) {
   deleteButton.addEventListener("click", async event => {
     event.stopPropagation();
 
-    const confirmed = window.confirm(
-      `Delete "${project.name}"?`
-    );
+    const confirmed = await showConfirm({
+      title: "Delete Project?",
+      message: `"${project.name}" will be permanently removed from this browser.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger"
+    });
 
     if (!confirmed) {
       return;
@@ -206,6 +210,8 @@ function createProjectCard(project) {
       await removeProject(project.id);
 
       article.remove();
+
+    showToast(`"${project.name}" deleted successfully.`, "success");
     } catch (error) {
       console.error("Failed to delete project:", error);
     }
@@ -241,3 +247,12 @@ function initializeApp() {
 }
 
 initializeApp();
+import {
+  createUIHelpers
+} from "./ui.js";
+
+const {
+  showConfirm,
+  showToast
+} = createUIHelpers();
+
