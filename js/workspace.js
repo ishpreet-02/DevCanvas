@@ -6,7 +6,7 @@ import {
 
 import {
   getSettings
-} from "./settings.js";
+} from "./settingsStore.js";
 
 import {
   readProjectFiles
@@ -150,6 +150,42 @@ tabs.forEach(tab => {
     switchEditor(tab.dataset.editor);
   });
 });
+
+function handleTabKey(editor) {
+  editor.addEventListener("keydown", event => {
+    if (event.key !== "Tab") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const tabSize = workspaceSettings?.tabSize || 2;
+    const spaces = " ".repeat(tabSize);
+
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+
+    editor.value =
+      editor.value.substring(0, start) +
+      spaces +
+      editor.value.substring(end);
+
+    const cursorPosition = start + spaces.length;
+
+    editor.selectionStart = cursorPosition;
+    editor.selectionEnd = cursorPosition;
+
+    editor.dispatchEvent(
+      new Event("input", {
+        bubbles: true
+      })
+    );
+  });
+}
+
+handleTabKey(htmlEditor);
+handleTabKey(cssEditor);
+handleTabKey(javascriptEditor);
 
 function setPreviewSize(size) {
   previewDevice.classList.remove(
