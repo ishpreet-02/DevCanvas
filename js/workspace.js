@@ -565,6 +565,23 @@ function scheduleAutosave() {
   }, AUTOSAVE_DELAY);
 }
 
+function flushAutosave() {
+  if (!currentProject || !hasChanges) {
+    return;
+  }
+
+  clearTimeout(autosaveTimer);
+  saveCurrentProject();
+}
+
+window.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    flushAutosave();
+  }
+});
+
+window.addEventListener("pagehide", flushAutosave);
+
 editors.forEach(editor => {
   editor.addEventListener("input", () => {
     if (isLoadingProject) {
@@ -762,12 +779,38 @@ renameForm.addEventListener("submit", async event => {
   }
 });
 
-dashboardLink.addEventListener("click", async event => {
-  if (currentProject || !hasChanges) {
+async function handleNavigation(event, targetUrl) {
+  if (!hasChanges) {
     return;
   }
 
   event.preventDefault();
+
+  if (currentProject) {
+    if (workspaceSettings?.autosave) {
+      clearTimeout(autosaveTimer);
+      await saveCurrentProject();
+      window.location.href = targetUrl;
+      return;
+    }
+
+    const shouldSave = await showConfirm({
+      title: "Save your changes?",
+      message:
+        "You have unsaved changes in this workspace. Save before leaving?",
+      confirmText: "Save Changes",
+      cancelText: "Discard"
+    });
+
+    if (shouldSave) {
+      await saveCurrentProject();
+    } else {
+      hasChanges = false;
+    }
+
+    window.location.href = targetUrl;
+    return;
+  }
 
   const shouldSave = await showConfirm({
     title: "Save your project?",
@@ -778,17 +821,28 @@ dashboardLink.addEventListener("click", async event => {
   });
 
   if (!shouldSave) {
-    window.location.href = dashboardLink.href;
+    hasChanges = false;
+    window.location.href = targetUrl;
     return;
   }
 
-  pendingNavigation = dashboardLink.href;
+  pendingNavigation = targetUrl;
 
   openNameProjectDialog();
+}
+
+const leaveLinks = document.querySelectorAll(
+  ".brand, .navigation a:not(.active)"
+);
+
+leaveLinks.forEach(link => {
+  link.addEventListener("click", event => {
+    handleNavigation(event, link.href);
+  });
 });
 
 window.addEventListener("beforeunload", event => {
-  if (!currentProject && hasChanges) {
+  if (hasChanges) {
     event.preventDefault();
     event.returnValue = "";
   }
