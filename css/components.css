@@ -247,3 +247,98 @@
     opacity: 0.4;
   }
 }
+
+.drag-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(247, 248, 252, 0.88);
+  backdrop-filter: blur(6px);
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transition:
+    opacity 160ms ease,
+    visibility 160ms ease;
+}
+
+.drag-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.drag-overlay-card {
+  width: min(430px, 100%);
+  padding: 34px;
+
+  text-align: center;
+
+  background: #ffffff;
+
+  border: 2px dashed var(--accent);
+  border-radius: 18px;
+
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.14);
+
+  transform: translateY(8px) scale(0.98);
+
+  transition:
+    transform 160ms ease;
+}
+
+.drag-overlay.active .drag-overlay-card {
+  transform: translateY(0) scale(1);
+}
+
+.drag-overlay-icon {
+  width: 52px;
+  height: 52px;
+
+  display: grid;
+  place-items: center;
+
+  margin: 0 auto 16px;
+
+  border-radius: 14px;
+
+  background: var(--accent-soft);
+  color: var(--accent);
+
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.drag-overlay-card h2 {
+  margin-bottom: 8px;
+
+  font-size: 20px;
+}
+
+.drag-overlay-card p {
+  color: var(--text-secondary);
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.drag-overlay-card span {
+  display: inline-block;
+
+  margin-top: 14px;
+
+  color: var(--text-muted);
+
+  font-size: 12px;
+}
+

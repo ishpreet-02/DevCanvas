@@ -64,9 +64,16 @@ const exportProjectButton = document.getElementById("export-project-button");
 const copyCodeButton = document.getElementById("copy-code-button");
 const workspaceFileInput = document.getElementById("workspace-file-input");
 
+const workspaceStage =
+  document.querySelector(".workspace-stage");
+
+const dragOverlay =
+  document.getElementById("drag-overlay");
+
 let previewTimer;
 let autosaveTimer;
 let consoleMessages = 0;
+let dragCounter = 0;
 
 let currentProject = null;
 let workspaceSettings = null;
@@ -644,6 +651,109 @@ workspaceFileInput.addEventListener("change", async event => {
     workspaceFileInput.value = "";
   }
 });
+
+function containsFiles(event) {
+  return Array.from(
+    event.dataTransfer?.types || []
+  ).includes("Files");
+}
+
+function handleDragEnter(event) {
+  if (!containsFiles(event)) {
+    return;
+  }
+
+  event.preventDefault();
+
+  dragCounter++;
+
+  dragOverlay.classList.add("active");
+}
+
+function handleDragOver(event) {
+  if (!containsFiles(event)) {
+    return;
+  }
+
+  event.preventDefault();
+
+  event.dataTransfer.dropEffect = "copy";
+}
+
+function handleDragLeave(event) {
+  if (!containsFiles(event)) {
+    return;
+  }
+
+  event.preventDefault();
+
+  dragCounter--;
+
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+
+    dragOverlay.classList.remove("active");
+  }
+}
+
+async function handleDrop(event) {
+  event.preventDefault();
+
+  dragCounter = 0;
+
+  dragOverlay.classList.remove("active");
+
+  const files = event.dataTransfer.files;
+
+  if (!files || files.length === 0) {
+    return;
+  }
+
+  try {
+    const { projectData } =
+      await readProjectFiles(files);
+
+    importFilesIntoEditors(
+      projectData
+    );
+
+    showToast(
+      "Files imported successfully.",
+      "success"
+    );
+  } catch (error) {
+    console.error(
+      "Failed to import dropped files:",
+      error
+    );
+
+    showToast(
+      error.message ||
+        "Unable to import dropped files.",
+      "error"
+    );
+  }
+}
+
+workspaceStage.addEventListener(
+  "dragenter",
+  handleDragEnter
+);
+
+workspaceStage.addEventListener(
+  "dragover",
+  handleDragOver
+);
+
+workspaceStage.addEventListener(
+  "dragleave",
+  handleDragLeave
+);
+
+workspaceStage.addEventListener(
+  "drop",
+  handleDrop
+);
 
 window.addEventListener("message", event => {
   if (event.source !== previewFrame.contentWindow) {
