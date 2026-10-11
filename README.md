@@ -461,6 +461,7 @@ Settings are stored using IndexedDB.
 | Clipboard API | Copy code from active editor |
 | Fullscreen API | Expand live preview to full display |
 | Page Lifecycle API | Flush autosaves on `visibilitychange`/`pagehide` and guard with `beforeunload` |
+| Service Worker API | Cache application shell files for offline availability |
 | `postMessage()` | Transfer console messages between iframe and parent application |
 | iframe `srcdoc` | Render dynamically generated project output |
 | iframe Sandbox | Isolate user-generated JavaScript execution |
@@ -479,6 +480,7 @@ Settings are stored using IndexedDB.
 ## Browser Technologies
 
 - IndexedDB API
+- Service Worker API
 - File API & Drag and Drop API
 - Blob API & URL API
 - Clipboard API
@@ -522,8 +524,10 @@ DevCanvas/
 │   ├── files.js
 │   ├── export.js
 │   ├── ui.js
-│   └── state.js
+│   ├── state.js
+│   └── serviceWorker.js
 │
+├── sw.js
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -755,6 +759,9 @@ workspace.js
 
 app.js
 → Dashboard project management, project creation modal, and file import initiation
+
+serviceWorker.js
+→ Registers the root Service Worker (sw.js) to enable offline application caching
 ```
 
 This improves readability, maintainability, and debugging.
@@ -828,6 +835,7 @@ The following features have been implemented:
 - [x] Smart Tab key indentation handling
 - [x] Page lifecycle data resilience (`visibilitychange` & `pagehide`)
 - [x] Custom accessible confirmation dialogs and toast notifications
+- [x] Service Worker offline application caching
 
 ---
 
@@ -837,7 +845,6 @@ The following features are planned as future improvements:
 
 - ZIP project export
 - Enhanced code editor with syntax highlighting and line numbers (e.g., CodeMirror integration)
-- Service Worker integration for offline asset caching
 - Advanced project templates
 - Project duplication
 - Search and filtering for saved projects

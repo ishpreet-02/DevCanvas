@@ -20,6 +20,10 @@ import {
   createUIHelpers
 } from "./ui.js";
 
+import {
+  registerServiceWorker
+} from "./serviceWorker.js";
+
 const {
   showConfirm,
   showToast
@@ -1049,3 +1053,4 @@ async function loadProject() {
 }
 
 loadProject();
+registerServiceWorker();

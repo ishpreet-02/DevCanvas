@@ -3,6 +3,10 @@ import {
   saveSettings
 } from "./settingsStore.js";
 
+import {
+  registerServiceWorker
+} from "./serviceWorker.js";
+
 const editorThemeSelect = document.getElementById(
   "editor-theme"
 );
@@ -181,4 +185,5 @@ async function initializeSettingsPage() {
 }
 
 initializeSettingsPage();
+registerServiceWorker();
 

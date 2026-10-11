@@ -10,6 +10,19 @@ import {
   createImportedProjectName
 } from "./files.js";
 
+import {
+  createUIHelpers
+} from "./ui.js";
+
+import {
+  registerServiceWorker
+} from "./serviceWorker.js";
+
+const {
+  showConfirm,
+  showToast
+} = createUIHelpers();
+
 const projectGrid = document.getElementById("project-grid");
 
 const newProjectDialog = document.getElementById("new-project-dialog");
@@ -247,12 +260,5 @@ function initializeApp() {
 }
 
 initializeApp();
-import {
-  createUIHelpers
-} from "./ui.js";
-
-const {
-  showConfirm,
-  showToast
-} = createUIHelpers();
+registerServiceWorker();
 
