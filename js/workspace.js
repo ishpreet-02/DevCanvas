@@ -41,6 +41,12 @@ const previewFrame = document.getElementById("preview-frame");
 const previewSizeButtons = document.querySelectorAll(".preview-size-button");
 const previewDevice = document.getElementById("preview-device");
 
+const fullscreenPreviewButton =
+  document.getElementById("fullscreen-preview-button");
+
+const previewPanel =
+  document.querySelector(".preview-panel");
+
 const projectNameElement = document.getElementById("project-name");
 const saveStatus = document.getElementById("save-status");
 const statusDot = document.getElementById("status-dot");
@@ -215,6 +221,51 @@ previewSizeButtons.forEach(button => {
   button.addEventListener("click", () => {
     setPreviewSize(button.dataset.previewSize);
   });
+});
+
+async function toggleFullscreenPreview() {
+  try {
+    if (!document.fullscreenElement) {
+      await previewPanel.requestFullscreen();
+      return;
+    }
+
+    await document.exitFullscreen();
+  } catch (error) {
+    console.error("Fullscreen failed:", error);
+
+    showToast(
+      "Unable to open fullscreen preview.",
+      "error"
+    );
+  }
+}
+
+fullscreenPreviewButton.addEventListener(
+  "click",
+  toggleFullscreenPreview
+);
+
+document.addEventListener("fullscreenchange", () => {
+  const isFullscreen =
+    document.fullscreenElement === previewPanel;
+
+  fullscreenPreviewButton.classList.toggle(
+    "active",
+    isFullscreen
+  );
+
+  fullscreenPreviewButton.setAttribute(
+    "aria-label",
+    isFullscreen
+      ? "Exit Fullscreen Preview"
+      : "Open Fullscreen Preview"
+  );
+
+  fullscreenPreviewButton.dataset.tooltip =
+    isFullscreen
+      ? "Exit Fullscreen"
+      : "Fullscreen Preview";
 });
 
 function getActiveEditor() {
