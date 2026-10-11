@@ -357,6 +357,45 @@ This allows users to test CSS media queries without resizing the entire browser 
 
 ---
 
+## 6.13 Drag-and-Drop File Import
+
+Users can import `.html`, `.css`, and `.js` files by dragging them directly from their local file manager into the workspace.
+
+- A visual drop overlay (`#drag-overlay`) activates automatically when files are dragged over the workspace.
+- A drag event counter tracks drag depth across nested child elements to eliminate UI flicker.
+- Dropped files are processed using the File API (`file.text()`) and populated into the respective editors.
+
+---
+
+## 6.14 Fullscreen Preview Mode
+
+DevCanvas integrates the **Fullscreen API** to allow developers to inspect and test their projects in a true edge-to-edge environment.
+
+- The fullscreen toggle expands the entire preview panel, retaining access to the responsive mode toggles (Desktop, Tablet, Mobile) and the console trigger.
+- Synchronizes with standard browser behavior (e.g., exiting via the `Escape` key) via the `fullscreenchange` event.
+
+---
+
+## 6.15 Smart Tab Indentation
+
+Standard browser `<textarea>` elements shift focus to the next UI control when the `Tab` key is pressed. DevCanvas intercepts the `Tab` key to provide expected code editor behavior:
+
+- Inserts 2 or 4 spaces based on the user's saved preference in Settings.
+- Accurately manages cursor selection position (`selectionStart` and `selectionEnd`).
+- Dispatches bubbling `input` events to trigger live preview and autosave seamlessly.
+
+---
+
+## 6.16 Page Lifecycle & Autosave Resilience
+
+To eliminate data loss when users switch tabs or close the browser:
+
+- Pending debounced autosaves (1.5s delay) are immediately flushed to IndexedDB on `visibilitychange` (minimizing/tab-switching) and `pagehide` (navigating/closing).
+- The `beforeunload` event guards against accidental closure whenever unsaved modifications exist.
+- Navigation links prompt users with custom confirmation dialogs before leaving.
+
+---
+
 # 7. Application Pages
 
 DevCanvas uses a multi-page architecture.
@@ -416,9 +455,12 @@ Settings are stored using IndexedDB.
 |---|---|
 | IndexedDB API | Store projects and application settings |
 | File API | Import HTML, CSS, and JavaScript files |
+| Drag and Drop API | Drop HTML, CSS, and JS files directly into workspace |
 | Blob API | Generate downloadable project files |
 | URL API | Generate temporary object URLs for downloads |
 | Clipboard API | Copy code from active editor |
+| Fullscreen API | Expand live preview to full display |
+| Page Lifecycle API | Flush autosaves on `visibilitychange`/`pagehide` and guard with `beforeunload` |
 | `postMessage()` | Transfer console messages between iframe and parent application |
 | iframe `srcdoc` | Render dynamically generated project output |
 | iframe Sandbox | Isolate user-generated JavaScript execution |
@@ -432,17 +474,18 @@ Settings are stored using IndexedDB.
 
 - HTML5
 - CSS3
-- Vanilla JavaScript
+- Vanilla JavaScript (ES Modules)
 
 ## Browser Technologies
 
-- IndexedDB
-- File API
-- Blob API
-- URL API
+- IndexedDB API
+- File API & Drag and Drop API
+- Blob API & URL API
 - Clipboard API
+- Fullscreen API
+- Page Lifecycle & Beforeunload API
 - Sandboxed iframe
-- Window Messaging API
+- Window Messaging API (`postMessage`)
 
 ## Development Tools
 
@@ -474,9 +517,12 @@ DevCanvas/
 │   ├── workspace.js
 │   ├── database.js
 │   ├── projects.js
-│   ├── settings.js
+│   ├── settingsStore.js
+│   ├── settingsPage.js
 │   ├── files.js
-│   └── export.js
+│   ├── export.js
+│   ├── ui.js
+│   └── state.js
 │
 ├── .gitignore
 ├── LICENSE
@@ -583,15 +629,17 @@ Generate Preview
 
 # 13. Database Design
 
-DevCanvas uses the browser's IndexedDB database.
+DevCanvas uses the browser's native IndexedDB database (**`DevCanvasDB`**, Version `3`).
 
 ```text
-DevCanvasDB
+DevCanvasDB (v3)
 │
-├── projects
+├── projects (keyPath: "id", indexes: "name", "updatedAt", "lastOpenedAt")
 │
-└── settings
+└── settings (keyPath: "id")
 ```
+
+Transactions manage connection lifecycles cleanly via `database.close()`, and schema migrations include `onblocked` conflict handling to prevent version locks.
 
 ## Projects Store
 
@@ -679,25 +727,34 @@ For example:
 
 ```text
 database.js
-→ Low-level IndexedDB operations
+→ Low-level IndexedDB operations, transaction lifecycle, and connection management
 
 projects.js
-→ Project-related logic
+→ Project entity creation, sorting, and project storage helpers
 
-settings.js
-→ Application settings
+settingsStore.js
+→ Settings data layer and IndexedDB persistence
+
+settingsPage.js
+→ Settings page UI interactions, form controls, and debounced auto-saving
 
 files.js
-→ File import logic
+→ File API import logic and file name parsing
 
 export.js
-→ File generation and download
+→ Blob and URL API file generation and download
+
+ui.js
+→ Reusable Promise-based confirmation dialogs and toast notifications
+
+state.js
+→ Shared in-memory application state
 
 workspace.js
-→ Workspace interaction and execution
+→ Editor tabs, smart tab indentation, live preview, console bridge, drag-and-drop, and page lifecycle management
 
 app.js
-→ Dashboard functionality
+→ Dashboard project management, project creation modal, and file import initiation
 ```
 
 This improves readability, maintainability, and debugging.
@@ -763,9 +820,14 @@ The following features have been implemented:
 - [x] Autosave
 - [x] Persistent settings
 - [x] File import
+- [x] Drag-and-drop file import
 - [x] Basic file export
 - [x] Clipboard support
 - [x] Responsive preview modes
+- [x] Fullscreen live preview
+- [x] Smart Tab key indentation handling
+- [x] Page lifecycle data resilience (`visibilitychange` & `pagehide`)
+- [x] Custom accessible confirmation dialogs and toast notifications
 
 ---
 
@@ -774,18 +836,12 @@ The following features have been implemented:
 The following features are planned as future improvements:
 
 - ZIP project export
-- Drag-and-drop file import
-- Fullscreen editor and preview
-- Service Worker integration
-- Complete offline application support
-- Enhanced code editor with syntax highlighting and line numbers
+- Enhanced code editor with syntax highlighting and line numbers (e.g., CodeMirror integration)
+- Service Worker integration for offline asset caching
 - Advanced project templates
 - Project duplication
-- Favorite projects
-- Improved custom confirmation dialogs
-- Cloud synchronization
-- Optional authentication
-- Cross-device project access
+- Search and filtering for saved projects
+- Cross-device project access via optional cloud synchronization
 
 ---
 
