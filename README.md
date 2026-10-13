@@ -836,6 +836,7 @@ The following features have been implemented:
 - [x] Page lifecycle data resilience (`visibilitychange` & `pagehide`)
 - [x] Custom accessible confirmation dialogs and toast notifications
 - [x] Service Worker offline application caching
+- [x] Custom syntax highlighting and line numbers (HTML, CSS, JS)
 
 ---
 
@@ -844,7 +845,7 @@ The following features have been implemented:
 The following features are planned as future improvements:
 
 - ZIP project export
-- Enhanced code editor with syntax highlighting and line numbers (e.g., CodeMirror integration)
+- Advanced language server / AST parser integration (e.g., Monaco/CodeMirror)
 - Advanced project templates
 - Project duplication
 - Search and filtering for saved projects
@@ -859,7 +860,7 @@ Current limitations include:
 - Projects are stored locally in the browser and are not automatically synchronized between devices.
 - Clearing browser site data may remove locally stored projects.
 - Authentication and cloud storage are not currently implemented.
-- Code editors currently provide basic text editing rather than a full IDE-level editing experience.
+- Syntax highlighting uses a custom regex-based tokenizer rather than a full programming-language AST parser.
 - ZIP export and complete offline support are planned for a later version.
 
 ---

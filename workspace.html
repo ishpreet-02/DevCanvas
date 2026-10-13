@@ -95,9 +95,58 @@
             </div>
 
             <div class="editor-container">
-              <textarea id="html-editor" class="code-editor active"></textarea>
-              <textarea id="css-editor" class="code-editor"></textarea>
-              <textarea id="javascript-editor" class="code-editor"></textarea>
+
+              <div class="code-editor-shell active" data-editor-shell="html">
+                <div class="line-numbers" id="html-line-numbers" aria-hidden="true">
+                  <span id="html-line-numbers-content">1</span>
+                </div>
+
+                <div class="code-editor-surface">
+                  <pre class="code-highlight" aria-hidden="true"><code id="html-highlight"></code></pre>
+                  <textarea
+                    id="html-editor"
+                    class="code-editor active"
+                    spellcheck="false"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    aria-label="HTML code editor"></textarea>
+                </div>
+              </div>
+
+              <div class="code-editor-shell" data-editor-shell="css">
+                <div class="line-numbers" id="css-line-numbers" aria-hidden="true">
+                  <span id="css-line-numbers-content">1</span>
+                </div>
+
+                <div class="code-editor-surface">
+                  <pre class="code-highlight" aria-hidden="true"><code id="css-highlight"></code></pre>
+                  <textarea
+                    id="css-editor"
+                    class="code-editor"
+                    spellcheck="false"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    aria-label="CSS code editor"></textarea>
+                </div>
+              </div>
+
+              <div class="code-editor-shell" data-editor-shell="javascript">
+                <div class="line-numbers" id="javascript-line-numbers" aria-hidden="true">
+                  <span id="javascript-line-numbers-content">1</span>
+                </div>
+
+                <div class="code-editor-surface">
+                  <pre class="code-highlight" aria-hidden="true"><code id="javascript-highlight"></code></pre>
+                  <textarea
+                    id="javascript-editor"
+                    class="code-editor"
+                    spellcheck="false"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    aria-label="JavaScript code editor"></textarea>
+                </div>
+              </div>
+
             </div>
           </div>
 

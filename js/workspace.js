@@ -119,6 +119,10 @@ function applyWorkspaceSettings() {
   }
 
   editors.forEach(editor => {
+    const editorName = editor.id.replace(/-editor$/, "");
+    const highlight = document.getElementById(`${editorName}-highlight`);
+    const lineNumbers = document.getElementById(`${editorName}-line-numbers`);
+
     editor.style.fontSize = `${workspaceSettings.fontSize}px`;
     editor.style.tabSize = workspaceSettings.tabSize;
 
@@ -126,6 +130,15 @@ function applyWorkspaceSettings() {
       "editor-theme-light",
       workspaceSettings.editorTheme === "light"
     );
+
+    [highlight, lineNumbers].forEach(element => {
+      if (!element) {
+        return;
+      }
+
+      element.style.fontSize = `${workspaceSettings.fontSize}px`;
+      element.style.tabSize = workspaceSettings.tabSize;
+    });
   });
 
   const editorContainer = document.querySelector(".editor-container");
@@ -143,6 +156,8 @@ function applyWorkspaceSettings() {
   if (!workspaceSettings.showConsole) {
     closeConsole();
   }
+
+  refreshAllEditorDecorations();
 }
 
 function getProjectIdFromURL() {
@@ -155,12 +170,278 @@ function switchEditor(editorName) {
     tab.classList.toggle("active", tab.dataset.editor === editorName);
   });
 
-  editors.forEach(editor => {
-    editor.classList.remove("active");
+  document.querySelectorAll(".code-editor-shell").forEach(shell => {
+    shell.classList.toggle(
+      "active",
+      shell.dataset.editorShell === editorName
+    );
   });
 
-  document.getElementById(`${editorName}-editor`).classList.add("active");
+  editors.forEach(editor => {
+    const isActive = editor.id === `${editorName}-editor`;
+
+    editor.classList.toggle("active", isActive);
+
+    if (isActive) {
+      syncEditorDecoration(editor);
+    }
+  });
 }
+
+function escapeEditorHTML(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function syntaxToken(value, type) {
+  return `<span class="syntax-${type}">${escapeEditorHTML(value)}</span>`;
+}
+
+function highlightHTMLTag(tag) {
+  const tokens = tag.match(
+    /<\/?|\/?>|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[A-Za-z_:][\w:.-]*|=|\s+|./g
+  ) || [];
+
+  let waitingForTagName = true;
+
+  return tokens.map((token, index) => {
+    if (
+      token === "<" ||
+      token === "</" ||
+      token === ">" ||
+      token === "/>" ||
+      token === "="
+    ) {
+      return syntaxToken(token, "punctuation");
+    }
+
+    if (waitingForTagName && /^[A-Za-z]/.test(token)) {
+      waitingForTagName = false;
+      return syntaxToken(token, "tag");
+    }
+
+    if (/^["']/.test(token)) {
+      return syntaxToken(token, "attribute-value");
+    }
+
+    if (/^[A-Za-z_:][\w:.-]*$/.test(token)) {
+      let nextIndex = index + 1;
+
+      while (
+        nextIndex < tokens.length &&
+        /^\s+$/.test(tokens[nextIndex])
+      ) {
+        nextIndex++;
+      }
+
+      if (tokens[nextIndex] === "=") {
+        return syntaxToken(token, "attribute");
+      }
+    }
+
+    return escapeEditorHTML(token);
+  }).join("");
+}
+
+function highlightHTML(source) {
+  const tagPattern =
+    /<!--[\s\S]*?-->|<!DOCTYPE\b[^>]*>|<\/?[A-Za-z][^>]*>/gi;
+
+  let result = "";
+  let cursor = 0;
+
+  for (const match of source.matchAll(tagPattern)) {
+    result += escapeEditorHTML(source.slice(cursor, match.index));
+
+    const token = match[0];
+
+    if (token.startsWith("<!--")) {
+      result += syntaxToken(token, "comment");
+    } else if (/^<!DOCTYPE/i.test(token)) {
+      result += syntaxToken(token, "doctype");
+    } else {
+      result += highlightHTMLTag(token);
+    }
+
+    cursor = match.index + token.length;
+  }
+
+  result += escapeEditorHTML(source.slice(cursor));
+
+  return result;
+}
+
+function highlightCSS(source) {
+  const pattern =
+    /\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#[0-9a-fA-F]{3,8}\b|--[\w-]+|@[\w-]+|[.#][A-Za-z_-][\w-]*|!\s*important\b|\b\d+(?:\.\d+)?(?:%|px|rem|em|vh|vw|vmin|vmax|ms|s|deg|fr)?|[A-Za-z_-][\w-]*(?=\s*:)|\b(?:inherit|initial|unset|revert|none|auto|flex|grid|block|inline|relative|absolute|fixed|sticky|solid|transparent|currentColor|important)\b|[\{\}\(\)\[\]:;,]|\s+|./gs;
+
+  let result = "";
+
+  for (const match of source.matchAll(pattern)) {
+    const token = match[0];
+    let type = "";
+
+    if (token.startsWith("/*")) {
+      type = "comment";
+    } else if (/^["']/.test(token)) {
+      type = "string";
+    } else if (/^#[0-9a-f]{3,8}$/i.test(token)) {
+      type = "color";
+    } else if (token.startsWith("--")) {
+      type = "variable";
+    } else if (token.startsWith("@")) {
+      type = "at-rule";
+    } else if (/^[.#]/.test(token)) {
+      type = "selector";
+    } else if (/^!\s*important$/i.test(token)) {
+      type = "keyword";
+    } else if (/^\d/.test(token)) {
+      type = "number";
+    } else if (
+      /^[A-Za-z_-][\w-]*$/.test(token) &&
+      /^\s*:/.test(source.slice(match.index + token.length))
+    ) {
+      type = "property";
+    } else if (
+      /^(inherit|initial|unset|revert|none|auto|flex|grid|block|inline|relative|absolute|fixed|sticky|solid|transparent|currentColor|important)$/i.test(token)
+    ) {
+      type = "keyword";
+    } else if ("{}()[]:;,".includes(token)) {
+      type = "punctuation";
+    }
+
+    result += type
+      ? syntaxToken(token, type)
+      : escapeEditorHTML(token);
+  }
+
+  return result;
+}
+
+function highlightJavaScript(source) {
+  const pattern =
+    /\/\/[^\n]*|\/\*[\s\S]*?\*\/|`(?:\\[\s\S]|[^`])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|class|extends|this|super|try|catch|finally|throw|async|await|import|export|from|default|of|in|instanceof|typeof|void|delete|yield)\b|\b(?:true|false|null|undefined|NaN|Infinity)\b|\b\d+(?:\.\d+)?n?\b|\b(?:console|window|document|Math|Array|Object|String|Number|Boolean|Promise|JSON|Date|Error|Map|Set|RegExp)\b|[A-Za-z_$][\w$]*(?=\s*\()|[\{\}\(\)\[\].,;:?=+\-*\/%<>!&|~^]|\s+|./gs;
+
+  const keywords = new Set([
+    "const", "let", "var", "function", "return", "if", "else",
+    "for", "while", "do", "switch", "case", "break", "continue",
+    "new", "class", "extends", "this", "super", "try", "catch",
+    "finally", "throw", "async", "await", "import", "export",
+    "from", "default", "of", "in", "instanceof", "typeof", "void",
+    "delete", "yield"
+  ]);
+
+  const literals = new Set([
+    "true", "false", "null", "undefined", "NaN", "Infinity"
+  ]);
+
+  const builtins = new Set([
+    "console", "window", "document", "Math", "Array", "Object",
+    "String", "Number", "Boolean", "Promise", "JSON", "Date",
+    "Error", "Map", "Set", "RegExp"
+  ]);
+
+  let result = "";
+
+  for (const match of source.matchAll(pattern)) {
+    const token = match[0];
+    let type = "";
+
+    if (token.startsWith("//") || token.startsWith("/*")) {
+      type = "comment";
+    } else if (
+      token.startsWith('"') ||
+      token.startsWith("'") ||
+      token.startsWith("`")
+    ) {
+      type = "string";
+    } else if (keywords.has(token)) {
+      type = "keyword";
+    } else if (literals.has(token)) {
+      type = "boolean";
+    } else if (/^\d/.test(token)) {
+      type = "number";
+    } else if (builtins.has(token)) {
+      type = "builtin";
+    } else if (/^[A-Za-z_$][\w$]*$/.test(token) && /^\s*\(/.test(source.slice(match.index + token.length))) {
+      type = "function";
+    } else if ("{}()[].,;:".includes(token)) {
+      type = "punctuation";
+    } else if (/^[=+\-*\/%<>!&|~^?]$/.test(token)) {
+      type = "operator";
+    }
+
+    result += type
+      ? syntaxToken(token, type)
+      : escapeEditorHTML(token);
+  }
+
+  return result;
+}
+
+function syncEditorDecoration(editor) {
+  const editorName = editor.id.replace(/-editor$/, "");
+  const highlight = document.getElementById(`${editorName}-highlight`);
+  const lineNumbers = document.getElementById(`${editorName}-line-numbers`);
+
+  if (!highlight || !lineNumbers) {
+    return;
+  }
+
+  highlight.style.transform =
+    `translate(${-editor.scrollLeft}px, ${-editor.scrollTop}px)`;
+
+  lineNumbers.scrollTop = editor.scrollTop;
+}
+
+function refreshEditorDecoration(editor) {
+  const editorName = editor.id.replace(/-editor$/, "");
+  const highlight = document.getElementById(`${editorName}-highlight`);
+  const lineNumbersContent = document.getElementById(
+    `${editorName}-line-numbers-content`
+  );
+
+  if (!highlight || !lineNumbersContent) {
+    return;
+  }
+
+  const source = editor.value || "";
+  let highlightedCode = "";
+
+  if (editorName === "html") {
+    highlightedCode = highlightHTML(source);
+  } else if (editorName === "css") {
+    highlightedCode = highlightCSS(source);
+  } else if (editorName === "javascript") {
+    highlightedCode = highlightJavaScript(source);
+  }
+
+  highlight.innerHTML = highlightedCode +
+    (source.endsWith("\n") ? "&#8203;" : "");
+
+  const lineCount = source.split("\n").length;
+
+  lineNumbersContent.textContent = Array.from(
+    { length: lineCount },
+    (_, index) => index + 1
+  ).join("\n");
+
+  syncEditorDecoration(editor);
+}
+
+function refreshAllEditorDecorations() {
+  editors.forEach(editor => {
+    refreshEditorDecoration(editor);
+  });
+}
+
+editors.forEach(editor => {
+  editor.addEventListener("scroll", () => {
+    syncEditorDecoration(editor);
+  });
+});
 
 tabs.forEach(tab => {
   tab.addEventListener("click", () => {
@@ -537,6 +818,8 @@ function applyEditorData(project) {
   htmlEditor.value = project.html;
   cssEditor.value = project.css;
   javascriptEditor.value = project.javascript;
+
+  refreshAllEditorDecorations();
 }
 
 function importFilesIntoEditors(projectData) {
@@ -551,6 +834,8 @@ function importFilesIntoEditors(projectData) {
   if (projectData.javascript !== null) {
     javascriptEditor.value = projectData.javascript;
   }
+
+  refreshAllEditorDecorations();
 
   hasChanges = true;
 
@@ -571,6 +856,8 @@ function applyStarterProject() {
   htmlEditor.value = starterProject.html;
   cssEditor.value = starterProject.css;
   javascriptEditor.value = starterProject.javascript;
+
+  refreshAllEditorDecorations();
 
   projectNameElement.textContent = "Untitled Project";
 
@@ -649,6 +936,8 @@ editors.forEach(editor => {
     if (isLoadingProject) {
       return;
     }
+
+    refreshEditorDecoration(editor);
 
     hasChanges = true;
     markUnsaved();
