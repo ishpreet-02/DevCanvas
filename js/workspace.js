@@ -69,10 +69,22 @@ const renameForm = document.getElementById("rename-form");
 const renameProjectName = document.getElementById("rename-project-name");
 const cancelRenameButton = document.getElementById("cancel-rename-button");
 
+const fileModalDialog = document.getElementById("file-modal-dialog");
+const fileModalForm = document.getElementById("file-modal-form");
+const fileModalTitle = document.getElementById("file-modal-title");
+const fileModalDescription = document.getElementById("file-modal-description");
+const fileModalLabel = document.getElementById("file-modal-label");
+const fileModalName = document.getElementById("file-modal-name");
+const cancelFileModalButton = document.getElementById("cancel-file-modal-button");
+const fileModalSubmitButton = document.getElementById("file-modal-submit-button");
+
 const importFilesButton = document.getElementById("import-files-button");
 const exportProjectButton = document.getElementById("export-project-button");
 const copyCodeButton = document.getElementById("copy-code-button");
 const workspaceFileInput = document.getElementById("workspace-file-input");
+const fileTree = document.getElementById("file-tree");
+const addFileButton = document.getElementById("add-file-button");
+const activeFileLabel = document.getElementById("active-file-label");
 
 const workspaceStage =
   document.querySelector(".workspace-stage");
@@ -87,6 +99,16 @@ let dragCounter = 0;
 
 let currentProject = null;
 let workspaceSettings = null;
+
+let projectFiles = {};
+
+let activeFileName = "index.html";
+
+let selectedFileByType = {
+  html: "index.html",
+  css: "style.css",
+  javascript: "script.js"
+};
 
 let isLoadingProject = false;
 let hasChanges = false;
@@ -122,6 +144,9 @@ function applyWorkspaceSettings() {
     const editorName = editor.id.replace(/-editor$/, "");
     const highlight = document.getElementById(`${editorName}-highlight`);
     const lineNumbers = document.getElementById(`${editorName}-line-numbers`);
+    const lineNumbersContent = document.getElementById(
+      `${editorName}-line-numbers-content`
+    );
 
     editor.style.fontSize = `${workspaceSettings.fontSize}px`;
     editor.style.tabSize = workspaceSettings.tabSize;
@@ -131,7 +156,7 @@ function applyWorkspaceSettings() {
       workspaceSettings.editorTheme === "light"
     );
 
-    [highlight, lineNumbers].forEach(element => {
+    [highlight, lineNumbers, lineNumbersContent].forEach(element => {
       if (!element) {
         return;
       }
@@ -186,7 +211,459 @@ function switchEditor(editorName) {
       syncEditorDecoration(editor);
     }
   });
+
+  if (
+    selectedFileByType[editorName] &&
+    typeof projectFiles[selectedFileByType[editorName]] === "string"
+  ) {
+    activeFileName = selectedFileByType[editorName];
+  }
+
+  if (activeFileLabel) {
+    activeFileLabel.textContent = activeFileName;
+  }
 }
+
+function getFileType(fileName) {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+
+  if (extension === "html") return "html";
+  if (extension === "css") return "css";
+  if (extension === "js") return "javascript";
+
+  return null;
+}
+
+function getEditorForType(type) {
+  if (type === "html") return htmlEditor;
+  if (type === "css") return cssEditor;
+  if (type === "javascript") return javascriptEditor;
+
+  return null;
+}
+
+function findFileByType(files, type) {
+  const preferredNames = {
+    html: ["index.html"],
+    css: ["style.css"],
+    javascript: ["script.js", "main.js"]
+  };
+
+  for (const name of preferredNames[type] || []) {
+    if (typeof files[name] === "string") {
+      return name;
+    }
+  }
+
+  return Object.keys(files)
+    .filter(name => getFileType(name) === type)
+    .sort((a, b) => a.localeCompare(b))[0] || null;
+}
+
+function normalizeWorkspaceFiles(project = {}) {
+  const files = {};
+
+  if (project.files && typeof project.files === "object") {
+    for (const [name, content] of Object.entries(project.files)) {
+      if (
+        typeof content === "string" &&
+        !name.includes("/") &&
+        !name.includes("\\") &&
+        /\.(html|css|js)$/i.test(name)
+      ) {
+        files[name] = content;
+      }
+    }
+  }
+
+  // Migrate projects that only have the original three fields.
+  if (Object.keys(files).length === 0) {
+    files["index.html"] = project.html ?? starterProject.html;
+    files["style.css"] = project.css ?? starterProject.css;
+    files["script.js"] = project.javascript ?? starterProject.javascript;
+
+    return files;
+  }
+
+  // Keep all three editor types available, even for partial imports.
+  if (!Object.keys(files).some(name => getFileType(name) === "html")) {
+    files["index.html"] = project.html ?? starterProject.html;
+  }
+
+  if (!Object.keys(files).some(name => getFileType(name) === "css")) {
+    files["style.css"] = project.css ?? starterProject.css;
+  }
+
+  if (!Object.keys(files).some(name => getFileType(name) === "javascript")) {
+    files["script.js"] = project.javascript ?? starterProject.javascript;
+  }
+
+  return files;
+}
+
+function syncActiveEditorToFiles() {
+  const type = getFileType(activeFileName);
+  const editor = getEditorForType(type);
+
+  if (editor && activeFileName) {
+    projectFiles[activeFileName] = editor.value;
+  }
+}
+
+function selectProjectFile(fileName) {
+  if (typeof projectFiles[fileName] !== "string") {
+    return;
+  }
+
+  syncActiveEditorToFiles();
+
+  const type = getFileType(fileName);
+  const editor = getEditorForType(type);
+
+  if (!editor || !type) {
+    return;
+  }
+
+  selectedFileByType[type] = fileName;
+  activeFileName = fileName;
+
+  editor.value = projectFiles[fileName];
+
+  switchEditor(type);
+  refreshEditorDecoration(editor);
+  renderFileTree();
+}
+
+function markProjectChanged() {
+  hasChanges = true;
+  markUnsaved();
+
+  if (workspaceSettings?.livePreview) {
+    schedulePreview();
+  }
+
+  if (currentProject && workspaceSettings?.autosave) {
+    scheduleAutosave();
+  }
+}
+
+function validateProjectFileName(fileName, oldName = null) {
+  const name = fileName.trim();
+
+  if (
+    !/^[A-Za-z0-9 _.-]+\.(html|css|js)$/i.test(name) ||
+    name.includes("..")
+  ) {
+    return "Use a root-level filename ending in .html, .css or .js.";
+  }
+
+  const duplicate = Object.keys(projectFiles).some(existingName => {
+    return (
+      existingName.toLowerCase() === name.toLowerCase() &&
+      existingName !== oldName
+    );
+  });
+
+  if (duplicate) {
+    return "A file with that name already exists.";
+  }
+
+  return null;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function updateHTMLFileReferences(oldName, newName) {
+  const pattern = new RegExp(
+    `(\\b(?:src|href)\\s*=\\s*["'])(?:\\./)?${escapeRegExp(oldName)}(["'])`,
+    "gi"
+  );
+
+  for (const fileName of Object.keys(projectFiles)) {
+    if (getFileType(fileName) !== "html") {
+      continue;
+    }
+
+    projectFiles[fileName] = projectFiles[fileName].replace(
+      pattern,
+      `$1${newName}$2`
+    );
+  }
+}
+
+function renderFileTree() {
+  if (!fileTree) {
+    return;
+  }
+
+  fileTree.replaceChildren();
+
+  const typeOrder = {
+    html: 0,
+    css: 1,
+    javascript: 2
+  };
+
+  const fileNames = Object.keys(projectFiles).sort((a, b) => {
+    const typeDifference =
+      typeOrder[getFileType(a)] - typeOrder[getFileType(b)];
+
+    return typeDifference || a.localeCompare(b);
+  });
+
+  for (const fileName of fileNames) {
+    const type = getFileType(fileName);
+
+    const row = document.createElement("div");
+    row.className = "file-tree-row";
+    row.setAttribute("role", "listitem");
+
+    const selectButton = document.createElement("button");
+    selectButton.type = "button";
+    selectButton.className = "file-tree-item";
+    selectButton.dataset.fileName = fileName;
+    selectButton.classList.toggle("active", fileName === activeFileName);
+    selectButton.title = fileName;
+
+    const icon = document.createElement("span");
+    icon.className = `file-type-icon ${type}`;
+    icon.textContent = type === "javascript" ? "JS" : type.toUpperCase();
+
+    const name = document.createElement("span");
+    name.className = "file-tree-name";
+    name.textContent = fileName;
+
+    selectButton.append(icon, name);
+
+    const renameButton = document.createElement("button");
+    renameButton.type = "button";
+    renameButton.className = "file-tree-action";
+    renameButton.dataset.fileName = fileName;
+    renameButton.dataset.fileAction = "rename";
+    renameButton.textContent = "✎";
+    renameButton.title = `Rename ${fileName}`;
+    renameButton.setAttribute("aria-label", `Rename ${fileName}`);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "file-tree-action delete";
+    deleteButton.dataset.fileName = fileName;
+    deleteButton.dataset.fileAction = "delete";
+    deleteButton.textContent = "×";
+    deleteButton.title = `Delete ${fileName}`;
+    deleteButton.setAttribute("aria-label", `Delete ${fileName}`);
+
+    row.append(selectButton, renameButton, deleteButton);
+    fileTree.appendChild(row);
+  }
+
+  if (activeFileLabel) {
+    activeFileLabel.textContent = activeFileName;
+  }
+}
+
+function promptFileModal({
+  title = "File",
+  description = "",
+  label = "File Name",
+  defaultValue = "",
+  submitText = "Save"
+}) {
+  if (!fileModalDialog) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise(resolve => {
+    fileModalTitle.textContent = title;
+    fileModalDescription.textContent = description;
+    fileModalLabel.textContent = label;
+    fileModalName.value = defaultValue;
+    fileModalSubmitButton.textContent = submitText;
+
+    function cleanup() {
+      fileModalForm.removeEventListener("submit", handleSubmit);
+      cancelFileModalButton.removeEventListener("click", handleCancel);
+      fileModalDialog.removeEventListener("cancel", handleCancel);
+    }
+
+    function handleSubmit(event) {
+      event.preventDefault();
+      const value = fileModalName.value.trim();
+      cleanup();
+      fileModalDialog.close();
+      resolve(value);
+    }
+
+    function handleCancel() {
+      cleanup();
+      fileModalDialog.close();
+      resolve(null);
+    }
+
+    fileModalForm.addEventListener("submit", handleSubmit);
+    cancelFileModalButton.addEventListener("click", handleCancel);
+    fileModalDialog.addEventListener("cancel", handleCancel);
+
+    fileModalDialog.showModal();
+    fileModalName.focus();
+
+    const lastDot = defaultValue.lastIndexOf(".");
+    if (lastDot > 0) {
+      fileModalName.setSelectionRange(0, lastDot);
+    } else {
+      fileModalName.select();
+    }
+  });
+}
+
+async function addProjectFile() {
+  const activeType = getFileType(activeFileName) || "javascript";
+  const extension = activeType === "javascript" ? "js" : activeType;
+  const defaultName = `new-file.${extension}`;
+
+  const enteredName = await promptFileModal({
+    title: "New File",
+    description: "Create a new HTML, CSS, or JavaScript file in your project.",
+    label: "File Name",
+    defaultValue: defaultName,
+    submitText: "Create File"
+  });
+
+  if (enteredName === null) {
+    return;
+  }
+
+  const fileName = enteredName.trim();
+  const error = validateProjectFileName(fileName);
+
+  if (error) {
+    showToast(error, "error");
+    return;
+  }
+
+  syncActiveEditorToFiles();
+
+  projectFiles[fileName] = "";
+  selectProjectFile(fileName);
+  renderFileTree();
+  markProjectChanged();
+}
+
+async function renameProjectFile(oldName) {
+  const enteredName = await promptFileModal({
+    title: "Rename File",
+    description: `Enter a new name for "${oldName}". References in HTML will be updated.`,
+    label: "File Name",
+    defaultValue: oldName,
+    submitText: "Rename"
+  });
+
+  if (enteredName === null) {
+    return;
+  }
+
+  const newName = enteredName.trim();
+  const error = validateProjectFileName(newName, oldName);
+
+  if (error) {
+    showToast(error, "error");
+    return;
+  }
+
+  if (newName === oldName) {
+    return;
+  }
+
+  syncActiveEditorToFiles();
+
+  projectFiles[newName] = projectFiles[oldName];
+  delete projectFiles[oldName];
+
+  updateHTMLFileReferences(oldName, newName);
+
+  for (const type of Object.keys(selectedFileByType)) {
+    if (selectedFileByType[type] === oldName) {
+      selectedFileByType[type] = newName;
+    }
+  }
+
+  if (activeFileName === oldName) {
+    activeFileName = newName;
+  }
+
+  renderFileTree();
+  markProjectChanged();
+}
+
+async function deleteProjectFile(fileName) {
+  const type = getFileType(fileName);
+
+  const filesOfType = Object.keys(projectFiles).filter(name => {
+    return getFileType(name) === type;
+  });
+
+  if (filesOfType.length <= 1) {
+    showToast(
+      `Keep at least one ${type === "javascript" ? "JavaScript" : type.toUpperCase()} file in the project.`,
+      "error"
+    );
+    return;
+  }
+
+  const confirmed = await showConfirm({
+    title: "Delete File",
+    message: `Are you sure you want to delete "${fileName}"? This cannot be undone.`,
+    confirmText: "Delete",
+    cancelText: "Cancel",
+    type: "danger"
+  });
+
+  if (!confirmed) {
+    return;
+  }
+
+  syncActiveEditorToFiles();
+
+  delete projectFiles[fileName];
+
+  if (selectedFileByType[type] === fileName) {
+    selectedFileByType[type] = findFileByType(projectFiles, type);
+  }
+
+  if (activeFileName === fileName) {
+    activeFileName = selectedFileByType[type];
+  }
+
+  selectProjectFile(activeFileName);
+  renderFileTree();
+  markProjectChanged();
+}
+
+fileTree?.addEventListener("click", event => {
+  const actionButton = event.target.closest("[data-file-action]");
+
+  if (actionButton) {
+    const { fileName, fileAction } = actionButton.dataset;
+
+    if (fileAction === "rename") {
+      renameProjectFile(fileName);
+    } else if (fileAction === "delete") {
+      deleteProjectFile(fileName);
+    }
+
+    return;
+  }
+
+  const fileButton = event.target.closest("[data-file-name]");
+
+  if (fileButton) {
+    selectProjectFile(fileButton.dataset.fileName);
+  }
+});
+
+addFileButton?.addEventListener("click", addProjectFile);
 
 function escapeEditorHTML(value) {
   return value
@@ -760,42 +1237,155 @@ function createConsoleBridge() {
   `;
 }
 
+function getReferencedProjectFile(reference) {
+  if (!reference) {
+    return "";
+  }
+
+  let cleanReference = reference.split(/[?#]/)[0];
+
+  try {
+    cleanReference = decodeURIComponent(cleanReference);
+  } catch {
+    // Keep the original path if it cannot be decoded.
+  }
+
+  return cleanReference.split(/[\\/]/).pop();
+}
+
+function escapeClosingTag(source, tagName) {
+  const pattern = new RegExp(`</${tagName}`, "gi");
+  return source.replace(pattern, `<\\/${tagName}`);
+}
+
 function buildPreview() {
   clearConsole();
+  syncActiveEditorToFiles();
 
-  const html = htmlEditor.value;
-  const css = cssEditor.value;
+  const htmlName = selectedFileByType.html;
+  const htmlSource = projectFiles[htmlName] ?? htmlEditor.value;
 
-  const javascript = javascriptEditor.value.replace(
-    /<\/script/gi,
-    "<\\/script"
+  const parsed = new DOMParser().parseFromString(
+    htmlSource,
+    "text/html"
   );
 
-  const documentContent = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  let linkedProjectCSS = 0;
 
-      <style>
-        ${css}
-      </style>
-    </head>
+  // Inline project CSS while preserving link order and media attributes.
+  parsed.querySelectorAll("link[rel][href]").forEach(link => {
+    const rel = (link.getAttribute("rel") || "")
+      .toLowerCase()
+      .split(/\s+/);
 
-    <body>
-      ${html}
+    if (!rel.includes("stylesheet")) {
+      return;
+    }
 
-      ${createConsoleBridge()}
+    const fileName = getReferencedProjectFile(
+      link.getAttribute("href")
+    );
 
-      <script>
-        ${javascript}
-      <\/script>
-    </body>
-    </html>
-  `;
+    if (
+      getFileType(fileName) !== "css" ||
+      typeof projectFiles[fileName] !== "string"
+    ) {
+      return;
+    }
 
-  previewFrame.srcdoc = documentContent;
+    const style = parsed.createElement("style");
+
+    if (link.hasAttribute("media")) {
+      style.setAttribute("media", link.getAttribute("media"));
+    }
+
+    style.textContent = escapeClosingTag(
+      projectFiles[fileName],
+      "style"
+    );
+
+    link.replaceWith(style);
+    linkedProjectCSS++;
+  });
+
+  // Preserve the original separate-CSS-editor behavior when HTML
+  // doesn't reference a project stylesheet.
+  if (linkedProjectCSS === 0) {
+    const cssName = selectedFileByType.css;
+
+    if (typeof projectFiles[cssName] === "string") {
+      const style = parsed.createElement("style");
+
+      style.textContent = escapeClosingTag(
+        projectFiles[cssName],
+        "style"
+      );
+
+      parsed.head.appendChild(style);
+    }
+  }
+
+  let linkedProjectScripts = 0;
+
+  // Inline each referenced project script in its original HTML order.
+  parsed.querySelectorAll("script[src]").forEach(script => {
+    const fileName = getReferencedProjectFile(
+      script.getAttribute("src")
+    );
+
+    if (
+      getFileType(fileName) !== "javascript" ||
+      typeof projectFiles[fileName] !== "string"
+    ) {
+      return;
+    }
+
+    const inlineScript = parsed.createElement("script");
+
+    for (const attribute of Array.from(script.attributes)) {
+      if (attribute.name.toLowerCase() !== "src") {
+        inlineScript.setAttribute(attribute.name, attribute.value);
+      }
+    }
+
+    inlineScript.textContent = escapeClosingTag(
+      projectFiles[fileName],
+      "script"
+    );
+
+    script.replaceWith(inlineScript);
+    linkedProjectScripts++;
+  });
+
+  // If no local script was referenced, run the selected JS editor
+  // as before. Otherwise, let the HTML's script references control order.
+  if (linkedProjectScripts === 0) {
+    const javascriptName = selectedFileByType.javascript;
+
+    if (typeof projectFiles[javascriptName] === "string") {
+      const script = parsed.createElement("script");
+
+      script.textContent = escapeClosingTag(
+        projectFiles[javascriptName],
+        "script"
+      );
+
+      parsed.body.appendChild(script);
+    }
+  }
+
+  // Insert the existing console bridge before user scripts execute.
+  const bridgeMarkup = createConsoleBridge();
+  const bridgeSource = bridgeMarkup
+    .replace(/^<script>\s*/i, "")
+    .replace(/\s*<\/script>$/i, "");
+
+  const bridgeScript = parsed.createElement("script");
+  bridgeScript.textContent = bridgeSource;
+  parsed.head.prepend(bridgeScript);
+
+  previewFrame.srcdoc =
+    "<!DOCTYPE html>\n" + parsed.documentElement.outerHTML;
 }
 
 function schedulePreview() {
@@ -807,45 +1397,120 @@ function schedulePreview() {
 }
 
 function getEditorData() {
+  syncActiveEditorToFiles();
+
+  const htmlFile = selectedFileByType.html;
+  const cssFile = selectedFileByType.css;
+  const javascriptFile = selectedFileByType.javascript;
+
   return {
-    html: htmlEditor.value,
-    css: cssEditor.value,
-    javascript: javascriptEditor.value
+    html: projectFiles[htmlFile] ?? "",
+    css: projectFiles[cssFile] ?? "",
+    javascript: projectFiles[javascriptFile] ?? "",
+    files: { ...projectFiles }
   };
 }
 
 function applyEditorData(project) {
-  htmlEditor.value = project.html;
-  cssEditor.value = project.css;
-  javascriptEditor.value = project.javascript;
+  projectFiles = normalizeWorkspaceFiles(project);
 
+  selectedFileByType = {
+    html: findFileByType(projectFiles, "html"),
+    css: findFileByType(projectFiles, "css"),
+    javascript: findFileByType(projectFiles, "javascript")
+  };
+
+  htmlEditor.value = projectFiles[selectedFileByType.html] ?? "";
+  cssEditor.value = projectFiles[selectedFileByType.css] ?? "";
+  javascriptEditor.value =
+    projectFiles[selectedFileByType.javascript] ?? "";
+
+  activeFileName = selectedFileByType.html;
+
+  switchEditor("html");
+  renderFileTree();
   refreshAllEditorDecorations();
 }
 
 function importFilesIntoEditors(projectData) {
-  if (projectData.html !== null) {
-    htmlEditor.value = projectData.html;
+  syncActiveEditorToFiles();
+
+  const incomingFiles = {};
+
+  if (
+    projectData.files &&
+    typeof projectData.files === "object"
+  ) {
+    Object.assign(incomingFiles, projectData.files);
+  } else {
+    // Compatibility with the original importer format.
+    if (projectData.html !== null && projectData.html !== undefined) {
+      incomingFiles[selectedFileByType.html] = projectData.html;
+    }
+
+    if (projectData.css !== null && projectData.css !== undefined) {
+      incomingFiles[selectedFileByType.css] = projectData.css;
+    }
+
+    if (
+      projectData.javascript !== null &&
+      projectData.javascript !== undefined
+    ) {
+      incomingFiles[selectedFileByType.javascript] =
+        projectData.javascript;
+    }
   }
 
-  if (projectData.css !== null) {
-    cssEditor.value = projectData.css;
+  const importedTypes = new Set(
+    Object.keys(incomingFiles).map(getFileType).filter(Boolean)
+  );
+
+  // Replace files only for languages included in this import.
+  // Files in other languages remain untouched.
+  for (const name of Object.keys(projectFiles)) {
+    if (importedTypes.has(getFileType(name))) {
+      delete projectFiles[name];
+    }
   }
 
-  if (projectData.javascript !== null) {
-    javascriptEditor.value = projectData.javascript;
+  Object.assign(projectFiles, incomingFiles);
+
+  // Ensure all three existing editor tabs have a file.
+  projectFiles = normalizeWorkspaceFiles({
+    files: projectFiles,
+    html: projectFiles[selectedFileByType.html],
+    css: projectFiles[selectedFileByType.css],
+    javascript: projectFiles[selectedFileByType.javascript]
+  });
+
+  for (const type of importedTypes) {
+    selectedFileByType[type] = findFileByType(projectFiles, type);
   }
 
+  if (importedTypes.has("html")) {
+    activeFileName = selectedFileByType.html;
+  } else if (importedTypes.has("css")) {
+    activeFileName = selectedFileByType.css;
+  } else if (importedTypes.has("javascript")) {
+    activeFileName = selectedFileByType.javascript;
+  }
+
+  const htmlName = selectedFileByType.html;
+  const cssName = selectedFileByType.css;
+  const javascriptName = selectedFileByType.javascript;
+
+  htmlEditor.value = projectFiles[htmlName] ?? "";
+  cssEditor.value = projectFiles[cssName] ?? "";
+  javascriptEditor.value = projectFiles[javascriptName] ?? "";
+
+  switchEditor(getFileType(activeFileName));
+  renderFileTree();
   refreshAllEditorDecorations();
 
-  hasChanges = true;
-
-  markUnsaved();
-
+  markProjectChanged();
   buildPreview();
 
-  if (currentProject && workspaceSettings?.autosave) {
-    scheduleAutosave();
-  }
+  showToast("Files imported successfully.", "success");
 }
 
 function openWorkspaceFilePicker() {
@@ -853,16 +1518,30 @@ function openWorkspaceFilePicker() {
 }
 
 function applyStarterProject() {
-  htmlEditor.value = starterProject.html;
-  cssEditor.value = starterProject.css;
-  javascriptEditor.value = starterProject.javascript;
+  projectFiles = {
+    "index.html": starterProject.html,
+    "style.css": starterProject.css,
+    "script.js": starterProject.javascript
+  };
 
+  selectedFileByType = {
+    html: "index.html",
+    css: "style.css",
+    javascript: "script.js"
+  };
+
+  activeFileName = "index.html";
+
+  htmlEditor.value = projectFiles["index.html"];
+  cssEditor.value = projectFiles["style.css"];
+  javascriptEditor.value = projectFiles["script.js"];
+
+  switchEditor("html");
+  renderFileTree();
   refreshAllEditorDecorations();
 
   projectNameElement.textContent = "Untitled Project";
-
   setSaveStatus("unsaved", "New project");
-
   hasChanges = false;
 }
 
@@ -885,6 +1564,7 @@ async function saveCurrentProject() {
 
     const editorData = getEditorData();
 
+    currentProject.files = editorData.files;
     currentProject.html = editorData.html;
     currentProject.css = editorData.css;
     currentProject.javascript = editorData.javascript;
@@ -892,7 +1572,6 @@ async function saveCurrentProject() {
     await saveProject(currentProject);
 
     hasChanges = false;
-
     markSaved();
   } catch (error) {
     console.error("Failed to save project:", error);
@@ -938,6 +1617,7 @@ editors.forEach(editor => {
     }
 
     refreshEditorDecoration(editor);
+    syncActiveEditorToFiles();
 
     hasChanges = true;
     markUnsaved();

@@ -81,72 +81,95 @@
 
         <section class="workspace-layout">
           <div class="editor-panel">
-            <div class="panel-header">
-              <div class="editor-tabs">
-                <button class="editor-tab active" data-editor="html">HTML</button>
-                <button class="editor-tab" data-editor="css">CSS</button>
-                <button class="editor-tab" data-editor="javascript">JavaScript</button>
+
+            <aside class="file-explorer" aria-label="Project files">
+              <div class="file-explorer-header">
+                <span>Files</span>
+
+                <button
+                  type="button"
+                  class="file-add-button"
+                  id="add-file-button"
+                  title="Add file"
+                  aria-label="Add file">
+                  +
+                </button>
               </div>
 
-              <div class="editor-actions">
-                <button class="small-button" id="copy-code-button">Copy</button>
-                <span class="panel-label">Editor</span>
-              </div>
-            </div>
-
-            <div class="editor-container">
-
-              <div class="code-editor-shell active" data-editor-shell="html">
-                <div class="line-numbers" id="html-line-numbers" aria-hidden="true">
-                  <span id="html-line-numbers-content">1</span>
-                </div>
-
-                <div class="code-editor-surface">
-                  <pre class="code-highlight" aria-hidden="true"><code id="html-highlight"></code></pre>
-                  <textarea
-                    id="html-editor"
-                    class="code-editor active"
-                    spellcheck="false"
-                    autocomplete="off"
-                    autocapitalize="off"
-                    aria-label="HTML code editor"></textarea>
-                </div>
+              <div
+                class="file-tree"
+                id="file-tree"
+                role="list"
+                aria-label="Project file list">
               </div>
 
-              <div class="code-editor-shell" data-editor-shell="css">
-                <div class="line-numbers" id="css-line-numbers" aria-hidden="true">
-                  <span id="css-line-numbers-content">1</span>
+              <div class="file-explorer-footer">
+                HTML · CSS · JS
+              </div>
+            </aside>
+
+            <div class="editor-workspace-pane">
+              <div class="panel-header">
+                <div class="editor-tabs">
+                  <button class="editor-tab active" data-editor="html">HTML</button>
+                  <button class="editor-tab" data-editor="css">CSS</button>
+                  <button class="editor-tab" data-editor="javascript">JavaScript</button>
                 </div>
 
-                <div class="code-editor-surface">
-                  <pre class="code-highlight" aria-hidden="true"><code id="css-highlight"></code></pre>
-                  <textarea
-                    id="css-editor"
-                    class="code-editor"
-                    spellcheck="false"
-                    autocomplete="off"
-                    autocapitalize="off"
-                    aria-label="CSS code editor"></textarea>
+                <div class="editor-actions">
+                  <button class="small-button" id="copy-code-button">Copy</button>
+                  <span class="panel-label" id="active-file-label">index.html</span>
                 </div>
               </div>
 
-              <div class="code-editor-shell" data-editor-shell="javascript">
-                <div class="line-numbers" id="javascript-line-numbers" aria-hidden="true">
-                  <span id="javascript-line-numbers-content">1</span>
+              <div class="editor-container">
+
+                <div class="code-editor-shell active" data-editor-shell="html">
+                  <div class="line-numbers" id="html-line-numbers" aria-hidden="true"><span id="html-line-numbers-content">1</span></div>
+
+                  <div class="code-editor-surface">
+                    <pre class="code-highlight" aria-hidden="true"><code id="html-highlight"></code></pre>
+                    <textarea
+                      id="html-editor"
+                      class="code-editor active"
+                      spellcheck="false"
+                      autocomplete="off"
+                      autocapitalize="off"
+                      aria-label="HTML code editor"></textarea>
+                  </div>
                 </div>
 
-                <div class="code-editor-surface">
-                  <pre class="code-highlight" aria-hidden="true"><code id="javascript-highlight"></code></pre>
-                  <textarea
-                    id="javascript-editor"
-                    class="code-editor"
-                    spellcheck="false"
-                    autocomplete="off"
-                    autocapitalize="off"
-                    aria-label="JavaScript code editor"></textarea>
+                <div class="code-editor-shell" data-editor-shell="css">
+                  <div class="line-numbers" id="css-line-numbers" aria-hidden="true"><span id="css-line-numbers-content">1</span></div>
+
+                  <div class="code-editor-surface">
+                    <pre class="code-highlight" aria-hidden="true"><code id="css-highlight"></code></pre>
+                    <textarea
+                      id="css-editor"
+                      class="code-editor"
+                      spellcheck="false"
+                      autocomplete="off"
+                      autocapitalize="off"
+                      aria-label="CSS code editor"></textarea>
+                  </div>
                 </div>
+
+                <div class="code-editor-shell" data-editor-shell="javascript">
+                  <div class="line-numbers" id="javascript-line-numbers" aria-hidden="true"><span id="javascript-line-numbers-content">1</span></div>
+
+                  <div class="code-editor-surface">
+                    <pre class="code-highlight" aria-hidden="true"><code id="javascript-highlight"></code></pre>
+                    <textarea
+                      id="javascript-editor"
+                      class="code-editor"
+                      spellcheck="false"
+                      autocomplete="off"
+                      autocapitalize="off"
+                      aria-label="JavaScript code editor"></textarea>
+                  </div>
+                </div>
+
               </div>
-
             </div>
           </div>
 
@@ -251,6 +274,40 @@
 
         <button type="submit" class="primary-button">
           Rename
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="project-dialog" id="file-modal-dialog">
+    <form id="file-modal-form">
+      <div class="dialog-header">
+        <h2 id="file-modal-title">New File</h2>
+        <p id="file-modal-description">Create a new HTML, CSS, or JavaScript file.</p>
+      </div>
+
+      <div class="dialog-body">
+        <div class="form-group">
+          <label for="file-modal-name" id="file-modal-label">File Name</label>
+          <input
+            type="text"
+            id="file-modal-name"
+            class="form-input"
+            maxlength="60"
+            autocomplete="off"
+            spellcheck="false"
+            required>
+          <span class="file-modal-hint">Supported extensions: <code>.html</code>, <code>.css</code>, <code>.js</code></span>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary-button" id="cancel-file-modal-button">
+          Cancel
+        </button>
+
+        <button type="submit" class="primary-button" id="file-modal-submit-button">
+          Create
         </button>
       </div>
     </form>

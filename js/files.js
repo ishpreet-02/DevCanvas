@@ -14,7 +14,8 @@ export async function readProjectFiles(fileList) {
   const projectData = {
     html: null,
     css: null,
-    javascript: null
+    javascript: null,
+    files: {}
   };
 
   const importedFiles = [];
@@ -26,24 +27,33 @@ export async function readProjectFiles(fileList) {
       continue;
     }
 
+    if (projectData.files[file.name] !== undefined) {
+      throw new Error(`Duplicate file name: ${file.name}`);
+    }
+
     const content = await file.text();
 
-    if (extension === "html") {
-      projectData.html = content;
-    }
-
-    if (extension === "css") {
-      projectData.css = content;
-    }
-
-    if (extension === "js") {
-      projectData.javascript = content;
-    }
+    // Preserve every imported file, including multiple files
+    // with the same extension.
+    projectData.files[file.name] = content;
 
     importedFiles.push({
       name: file.name,
       extension
     });
+
+    // Keep compatibility with the existing three-editor workspace.
+    if (extension === "html" && projectData.html === null) {
+      projectData.html = content;
+    }
+
+    if (extension === "css" && projectData.css === null) {
+      projectData.css = content;
+    }
+
+    if (extension === "js" && projectData.javascript === null) {
+      projectData.javascript = content;
+    }
   }
 
   if (importedFiles.length === 0) {
@@ -69,5 +79,8 @@ export function createImportedProjectName(fileList) {
     return "Imported Project";
   }
 
-  return selectedFile.name.replace(/\.[^/.]+$/, "") || "Imported Project";
+  return (
+    selectedFile.name.replace(/\.[^/.]+$/, "") ||
+    "Imported Project"
+  );
 }
