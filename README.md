@@ -193,9 +193,3 @@ DevCanvas runs directly in the browser with **no build steps or npm installation
 3. Open `http://localhost:5500` in Google Chrome, Microsoft Edge, Mozilla Firefox, or Apple Safari.
 
 ---
-
-## 6. Author
-
-**Ishpreet Singh Bhatia**  
-B.Tech Computer Science Engineering  
-Chitkara University
